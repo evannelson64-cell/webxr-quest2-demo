@@ -5,12 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Quest 2 WebXR Demo</title>
     <style>
+      :root {
+        --bg: #0d1117;
+        --panel: rgba(15, 23, 42, 0.74);
+        --text: #f3f4f6;
+        --accent: #7dd3fc;
+        --danger: #fca5a5;
+      }
+
       html, body {
         margin: 0;
         width: 100%;
         height: 100%;
         overflow: hidden;
-        background: #111;
+        background: var(--bg);
+        color: var(--text);
         font-family: Arial, sans-serif;
       }
 
@@ -19,12 +28,30 @@
         left: 12px;
         top: 12px;
         z-index: 10;
-        color: #fff;
-        background: rgba(0, 0, 0, 0.35);
+        color: var(--text);
+        background: var(--panel);
         padding: 10px 12px;
         border-radius: 8px;
         font-size: 14px;
-        line-height: 1.4;
+        line-height: 1.5;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+      }
+
+      #error { display: none; }
+      #error.visible {
+        display: block;
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0,0,0,0.8);
+        color: #fff;
+        border: 1px solid rgba(255,255,255,0.2);
+        max-width: 80vw;
+        padding: 16px 18px;
+        border-radius: 10px;
+        z-index: 20;
+        font-size: 14px;
       }
 
       canvas {
@@ -40,304 +67,330 @@
       Grip to grab the teapot<br />
       Left stick to walk
     </div>
+    <div id="error"></div>
 
     <script type="module">
-      import * as THREE from 'https://unpkg.com/three@0.159.0/build/three.module.js';
-      import { XRControllerModelFactory } from 'https://unpkg.com/three@0.159.0/examples/jsm/webxr/XRControllerModelFactory.js';
-      import { TeapotGeometry } from 'https://unpkg.com/three@0.159.0/examples/jsm/geometries/TeapotGeometry.js';
-      import { XRButton } from 'https://unpkg.com/three@0.159.0/examples/jsm/webxr/XRButton.js';
-
-      let camera, scene, renderer;
-      let cameraRig;
-      let physicsObjects = [];
-      let leftController, rightController;
-      const clock = new THREE.Clock();
-
-      init();
-
-      function init() {
-        scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x1b2430);
-
-        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 100);
-        camera.position.set(0, 1.6, 2.4);
-
-        cameraRig = new THREE.Group();
-        cameraRig.add(camera);
-        scene.add(cameraRig);
-
-        const hemi = new THREE.HemisphereLight(0xffffff, 0x1b2430, 1.2);
-        hemi.position.set(0, 10, 0);
-        scene.add(hemi);
-
-        const dir = new THREE.DirectionalLight(0xffffff, 0.8);
-        dir.position.set(3, 6, 2);
-        scene.add(dir);
-
-        const ground = new THREE.Mesh(
-          new THREE.CircleGeometry(12, 64),
-          new THREE.MeshStandardMaterial({ color: 0x2f4f4f, roughness: 0.9, metalness: 0.05 })
-        );
-        ground.rotation.x = -Math.PI / 2;
-        ground.position.y = 0;
-        scene.add(ground);
-
-        // Low-poly table
-        const tableTop = new THREE.Mesh(
-          new THREE.BoxGeometry(1.6, 0.1, 1.1),
-          new THREE.MeshStandardMaterial({ color: 0x8a5a3b, roughness: 0.9 })
-        );
-        tableTop.position.set(0, 0.8, -1.1);
-        scene.add(tableTop);
-
-        const legGeometry = new THREE.BoxGeometry(0.09, 0.72, 0.09);
-        const legMaterial = new THREE.MeshStandardMaterial({ color: 0x5c3b26, roughness: 0.9 });
-        for (const x of [-0.62, 0.62]) {
-          for (const z of [-0.42, 0.42]) {
-            const leg = new THREE.Mesh(legGeometry, legMaterial);
-            leg.position.set(x, 0.36, -1.1 + z);
-            scene.add(leg);
-          }
-        }
-
-        const tableTopY = tableTop.position.y + tableTop.geometry.parameters.height / 2;
-
-        // Grab-able teapot
-        const teapotMesh = new THREE.Mesh(
-          new TeapotGeometry(0.16, 7),
-          new THREE.MeshStandardMaterial({ color: 0x66ccff, roughness: 0.45, metalness: 0.2 })
-        );
-        teapotMesh.position.set(0, tableTopY + 0.12, -1.1);
-        scene.add(teapotMesh);
-
-        const crate = new THREE.Mesh(
-          new THREE.BoxGeometry(0.18, 0.18, 0.18),
-          new THREE.MeshStandardMaterial({ color: 0xffd166, roughness: 0.7 })
-        );
-        crate.position.set(-0.3, 0.09, -0.7);
-        scene.add(crate);
-
-        const teapot = new PhysicsObject(teapotMesh, 0.9);
-        const cube = new PhysicsObject(crate, 0.7);
-
-        // Controller setup
-        renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        renderer.outputColorSpace = THREE.SRGBColorSpace;
-        renderer.xr.enabled = true;
-        document.body.appendChild(renderer.domElement);
-
-        const controllerModelFactory = new XRControllerModelFactory();
-
-        function buildController(index) {
-          const controller = renderer.xr.getController(index);
-          controller.userData.index = index;
-          controller.userData.prevWorldPosition = new THREE.Vector3();
-          controller.userData.prevTime = performance.now();
-          controller.userData.held = null;
-          controller.userData.triggerWasDown = false;
-          controller.userData.gripWasDown = false;
-          scene.add(controller);
-
-          const line = new THREE.Line(
-            new THREE.BufferGeometry().setFromPoints([
-              new THREE.Vector3(0, 0, 0),
-              new THREE.Vector3(0, 0, -0.5),
-            ]),
-            new THREE.LineBasicMaterial({ color: 0x00ffc8 })
-          );
-          line.scale.z = 1.8;
-          controller.add(line);
-
-          const grip = renderer.xr.getControllerGrip(index);
-          grip.add(controllerModelFactory.createControllerModel(grip));
-          scene.add(grip);
-
-          controller.userData.grip = grip;
-          return controller;
-        }
-
-        leftController = buildController(0);
-        rightController = buildController(1);
-
-        const enterVR = XRButton.createButton(renderer, {
-          requiredFeatures: ['local-floor'],
-          optionalFeatures: ['hand-tracking']
-        });
-        document.body.appendChild(enterVR);
-
-        // Controller interaction logic
-        function getGamepadForController(controller) {
-          const session = renderer.xr.getSession();
-          if (!session) return null;
-          const sources = session.inputSources;
-          return sources[controller.userData.index] && sources[controller.userData.index].gamepad;
-        }
-
-        function findNearestGrabbable(controller, maxDistance = 0.16) {
-          const worldPos = new THREE.Vector3();
-          controller.getWorldPosition(worldPos);
-
-          let best = null;
-          let bestDist = Number.POSITIVE_INFINITY;
-
-          for (const obj of physicsObjects) {
-            if (obj.attachedTo) continue;
-            const center = obj.mesh.getWorldPosition(new THREE.Vector3());
-            const dist = center.distanceTo(worldPos);
-            if (dist < maxDistance && dist < bestDist) {
-              best = obj;
-              bestDist = dist;
-            }
-          }
-
-          return best;
-        }
-
-        function updateControllerInput(controller) {
-          const gp = getGamepadForController(controller);
-          if (!gp) return;
-
-          const gripButton = gp.buttons[1] || gp.buttons[0] || gp.buttons[2];
-          const gripDown = !!(gripButton && gripButton.pressed);
-
-          if (gripDown && !controller.userData.gripWasDown) {
-            const target = findNearestGrabbable(controller);
-            if (target) {
-              target.attachedTo = controller;
-              controller.userData.held = target;
-              const targetWorldPos = target.mesh.getWorldPosition(new THREE.Vector3());
-              const localPos = controller.worldToLocal(targetWorldPos.clone());
-              target.mesh.position.copy(localPos);
-              controller.add(target.mesh);
-              target.velocity.set(0, 0, 0);
-            }
-          }
-
-          if (!gripDown && controller.userData.gripWasDown && controller.userData.held) {
-            const held = controller.userData.held;
-            const now = performance.now();
-            const dt = Math.max((now - controller.userData.prevTime) / 1000, 0.016);
-            const currentWorldPos = new THREE.Vector3();
-            controller.getWorldPosition(currentWorldPos);
-            const prevWorldPos = controller.userData.prevWorldPosition.clone();
-            const throwVelocity = currentWorldPos.clone().sub(prevWorldPos).divideScalar(dt);
-
-            controller.remove(held.mesh);
-            scene.add(held.mesh);
-            held.attachedTo = null;
-            controller.userData.held = null;
-            held.velocity.copy(throwVelocity);
-          }
-
-          controller.userData.gripWasDown = gripDown;
-          const pos = new THREE.Vector3();
-          controller.getWorldPosition(pos);
-          controller.userData.prevWorldPosition.copy(pos);
-          controller.userData.prevTime = performance.now();
-        }
-
-        function handleLocomotion() {
-          const session = renderer.xr.getSession();
-          if (!session) return;
-
-          const leftInput = session.inputSources.find((source) => source.handedness === 'left' && source.gamepad);
-          if (!leftInput || !leftInput.gamepad) return;
-
-          const [x, y] = leftInput.gamepad.axes;
-          const deadZone = 0.15;
-          const dx = Math.abs(x) > deadZone ? x : 0;
-          const dy = Math.abs(y) > deadZone ? y : 0;
-
-          if (dx === 0 && dy === 0) return;
-
-          const forward = new THREE.Vector3();
-          camera.getWorldDirection(forward);
-          forward.y = 0;
-          forward.normalize();
-
-          const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
-          const move = new THREE.Vector3();
-          move.addScaledVector(forward, -dy * 1.4);
-          move.addScaledVector(right, dx * 1.4);
-
-          const dt = Math.min(clock.getDelta(), 0.05);
-          cameraRig.position.addScaledVector(move, dt);
-        }
-
-        function physicsStep(dt) {
-          const gravity = new THREE.Vector3(0, -9.8, 0);
-
-          for (const obj of physicsObjects) {
-            if (obj.attachedTo) {
-              // keep object attached to controller and maintain world pose
-              const controller = obj.attachedTo;
-              const worldPos = controller.getWorldPosition(new THREE.Vector3());
-              const localPos = controller.worldToLocal(worldPos.clone());
-              obj.mesh.position.copy(localPos);
-              continue;
-            }
-
-            obj.velocity.addScaledVector(gravity, dt);
-            obj.velocity.multiplyScalar(0.995);
-            obj.mesh.position.addScaledVector(obj.velocity, dt);
-
-            if (obj.mesh.position.y < 0.06) {
-              obj.mesh.position.y = 0.06;
-              if (obj.velocity.y < 0) obj.velocity.y *= -0.32;
-              obj.velocity.x *= 0.94;
-              obj.velocity.z *= 0.94;
-            }
-
-            // Table collision
-            const tableHalfX = 0.8;
-            const tableHalfZ = 0.55;
-            const tableSurface = 0.8 + 0.05;
-
-            if (
-              obj.mesh.position.x > -tableHalfX &&
-              obj.mesh.position.x < tableHalfX &&
-              obj.mesh.position.z > -tableHalfZ &&
-              obj.mesh.position.z < tableHalfZ &&
-              obj.mesh.position.y < tableSurface
-            ) {
-              obj.mesh.position.y = tableSurface;
-              if (obj.velocity.y < 0) obj.velocity.y *= -0.28;
-              obj.velocity.x *= 0.96;
-              obj.velocity.z *= 0.96;
-            }
-          }
-        }
-
-        class PhysicsObject {
-          constructor(mesh, mass = 1) {
-            this.mesh = mesh;
-            this.mass = mass;
-            this.velocity = new THREE.Vector3();
-            this.attachedTo = null;
-            physicsObjects.push(this);
-          }
-        }
-
-        renderer.setAnimationLoop(() => {
-          const dt = Math.min(clock.getDelta(), 0.05);
-
-          updateControllerInput(leftController);
-          updateControllerInput(rightController);
-          handleLocomotion();
-          physicsStep(dt);
-
-          renderer.render(scene, camera);
-        });
+      const errorEl = document.getElementById('error');
+      function showError(message) {
+        console.error(message);
+        errorEl.textContent = message;
+        errorEl.classList.add('visible');
       }
 
-      window.addEventListener('resize', () => {
-        if (!camera || !renderer) return;
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-      });
+      try {
+        const THREE = await import('https://unpkg.com/three@0.159.0/build/three.module.js');
+        const { XRControllerModelFactory } = await import('https://unpkg.com/three@0.159.0/examples/jsm/webxr/XRControllerModelFactory.js');
+        const { XRButton } = await import('https://unpkg.com/three@0.159.0/examples/jsm/webxr/XRButton.js');
+        const { TeapotGeometry } = await import('https://unpkg.com/three@0.159.0/examples/jsm/geometries/TeapotGeometry.js');
+
+        let camera, scene, renderer;
+        let cameraRig;
+        let physicsObjects = [];
+        let leftController, rightController;
+        const clock = new THREE.Clock();
+
+        init();
+
+        function init() {
+          scene = new THREE.Scene();
+          scene.background = new THREE.Color(0x1b2430);
+
+          camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 100);
+          camera.position.set(0, 1.6, 2.4);
+
+          cameraRig = new THREE.Group();
+          cameraRig.add(camera);
+          scene.add(cameraRig);
+
+          const hemi = new THREE.HemisphereLight(0xffffff, 0x1b2430, 1.2);
+          hemi.position.set(0, 10, 0);
+          scene.add(hemi);
+
+          const dir = new THREE.DirectionalLight(0xffffff, 0.8);
+          dir.position.set(3, 6, 2);
+          scene.add(dir);
+
+          const ground = new THREE.Mesh(
+            new THREE.CircleGeometry(12, 64),
+            new THREE.MeshStandardMaterial({ color: 0x2f4f4f, roughness: 0.9, metalness: 0.05 })
+          );
+          ground.rotation.x = -Math.PI / 2;
+          ground.position.y = 0;
+          scene.add(ground);
+
+          // Low-poly table
+          const tableTop = new THREE.Mesh(
+            new THREE.BoxGeometry(1.6, 0.1, 1.1),
+            new THREE.MeshStandardMaterial({ color: 0x8a5a3b, roughness: 0.9 })
+          );
+          tableTop.position.set(0, 0.8, -1.1);
+          scene.add(tableTop);
+
+          const legGeometry = new THREE.BoxGeometry(0.09, 0.72, 0.09);
+          const legMaterial = new THREE.MeshStandardMaterial({ color: 0x5c3b26, roughness: 0.9 });
+          for (const x of [-0.62, 0.62]) {
+            for (const z of [-0.42, 0.42]) {
+              const leg = new THREE.Mesh(legGeometry, legMaterial);
+              leg.position.set(x, 0.36, -1.1 + z);
+              scene.add(leg);
+            }
+          }
+
+          const tableSurfaceY = tableTop.position.y + tableTop.geometry.parameters.height / 2;
+
+          let teapotMesh;
+          try {
+            teapotMesh = new THREE.Mesh(
+              new TeapotGeometry(0.16, 7),
+              new THREE.MeshStandardMaterial({ color: 0x66ccff, roughness: 0.45, metalness: 0.2 })
+            );
+          } catch (e) {
+            teapotMesh = new THREE.Mesh(
+              new THREE.SphereGeometry(0.18, 16, 16),
+              new THREE.MeshStandardMaterial({ color: 0x66ccff, roughness: 0.5, metalness: 0.1 })
+            );
+          }
+
+          teapotMesh.position.set(0, tableSurfaceY + 0.12, -1.1);
+          scene.add(teapotMesh);
+
+          const crate = new THREE.Mesh(
+            new THREE.BoxGeometry(0.18, 0.18, 0.18),
+            new THREE.MeshStandardMaterial({ color: 0xffd166, roughness: 0.7 })
+          );
+          crate.position.set(-0.3, 0.09, -0.7);
+          scene.add(crate);
+
+          const teapot = new PhysicsObject(teapotMesh, 0.9);
+          const cube = new PhysicsObject(crate, 0.7);
+
+          renderer = new THREE.WebGLRenderer({ antialias: true });
+          renderer.setSize(window.innerWidth, window.innerHeight);
+          renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+          if (renderer.outputColorSpace) {
+            renderer.outputColorSpace = THREE.SRGBColorSpace;
+          } else if (renderer.outputEncoding) {
+            renderer.outputEncoding = THREE.sRGBEncoding;
+          }
+          renderer.xr.enabled = true;
+          document.body.appendChild(renderer.domElement);
+
+          const controllerModelFactory = new XRControllerModelFactory();
+
+          function buildController(index) {
+            const controller = renderer.xr.getController(index);
+            controller.userData.index = index;
+            controller.userData.prevWorldPosition = new THREE.Vector3();
+            controller.userData.prevTime = performance.now();
+            controller.userData.held = null;
+            controller.userData.gripWasDown = false;
+            scene.add(controller);
+
+            const line = new THREE.Line(
+              new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(0, 0, 0),
+                new THREE.Vector3(0, 0, -0.5),
+              ]),
+              new THREE.LineBasicMaterial({ color: 0x00ffc8 })
+            );
+            line.scale.z = 1.8;
+            controller.add(line);
+
+            const grip = renderer.xr.getControllerGrip(index);
+            try {
+              grip.add(controllerModelFactory.createControllerModel(grip));
+            } catch (e) {
+              // Some browsers may fail model creation; ignore and continue.
+            }
+            scene.add(grip);
+
+            controller.userData.grip = grip;
+            return controller;
+          }
+
+          leftController = buildController(0);
+          rightController = buildController(1);
+
+          try {
+            const enterVR = XRButton.createButton(renderer, {
+              requiredFeatures: ['local-floor'],
+              optionalFeatures: ['hand-tracking']
+            });
+            document.body.appendChild(enterVR);
+          } catch (e) {
+            console.warn('XRButton creation failed:', e);
+          }
+
+          function getGamepadForController(controller) {
+            const session = renderer.xr.getSession();
+            if (!session) return null;
+            const sources = session.inputSources;
+            return sources[controller.userData.index] && sources[controller.userData.index].gamepad;
+          }
+
+          function findNearestGrabbable(controller, maxDistance = 0.18) {
+            const worldPos = new THREE.Vector3();
+            controller.getWorldPosition(worldPos);
+
+            let best = null;
+            let bestDist = Number.POSITIVE_INFINITY;
+
+            for (const obj of physicsObjects) {
+              if (obj.attachedTo) continue;
+              const center = obj.mesh.getWorldPosition(new THREE.Vector3());
+              const dist = center.distanceTo(worldPos);
+              if (dist < maxDistance && dist < bestDist) {
+                best = obj;
+                bestDist = dist;
+              }
+            }
+            return best;
+          }
+
+          function updateControllerInput(controller) {
+            const gp = getGamepadForController(controller);
+            if (!gp) return;
+
+            const gripButton = gp.buttons && (gp.buttons[1] || gp.buttons[0] || gp.buttons[2]);
+            const gripDown = !!(gripButton && gripButton.pressed);
+
+            if (gripDown && !controller.userData.gripWasDown) {
+              const target = findNearestGrabbable(controller);
+              if (target) {
+                target.attachedTo = controller;
+                controller.userData.held = target;
+                const targetWorldPos = target.mesh.getWorldPosition(new THREE.Vector3());
+                const localPos = controller.worldToLocal(targetWorldPos.clone());
+                target.mesh.position.copy(localPos);
+                controller.add(target.mesh);
+                target.velocity.set(0, 0, 0);
+              }
+            }
+
+            if (!gripDown && controller.userData.gripWasDown && controller.userData.held) {
+              const held = controller.userData.held;
+              const now = performance.now();
+              const dt = Math.max((now - controller.userData.prevTime) / 1000, 0.016);
+              const currentWorldPos = new THREE.Vector3();
+              controller.getWorldPosition(currentWorldPos);
+              const prevWorldPos = controller.userData.prevWorldPosition.clone();
+              const throwVelocity = currentWorldPos.clone().sub(prevWorldPos).divideScalar(dt);
+
+              controller.remove(held.mesh);
+              scene.add(held.mesh);
+              held.attachedTo = null;
+              controller.userData.held = null;
+              held.velocity.copy(throwVelocity);
+            }
+
+            controller.userData.gripWasDown = gripDown;
+            const pos = new THREE.Vector3();
+            controller.getWorldPosition(pos);
+            controller.userData.prevWorldPosition.copy(pos);
+            controller.userData.prevTime = performance.now();
+          }
+
+          function handleLocomotion() {
+            const session = renderer.xr.getSession();
+            if (!session) return;
+
+            const leftInput = session.inputSources.find((source) => source.handedness === 'left' && source.gamepad);
+            if (!leftInput || !leftInput.gamepad) return;
+
+            const axes = leftInput.gamepad.axes || [];
+            if (axes.length < 2) return;
+
+            const x = Math.abs(axes[0]) > 0.15 ? axes[0] : 0;
+            const y = Math.abs(axes[1]) > 0.15 ? axes[1] : 0;
+            if (x === 0 && y === 0) return;
+
+            const forward = new THREE.Vector3();
+            camera.getWorldDirection(forward);
+            forward.y = 0;
+            forward.normalize();
+
+            const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
+            const move = new THREE.Vector3();
+            move.addScaledVector(forward, -y * 1.4);
+            move.addScaledVector(right, x * 1.4);
+
+            const dt = Math.min(clock.getDelta(), 0.05);
+            cameraRig.position.addScaledVector(move, dt);
+          }
+
+          class PhysicsObject {
+            constructor(mesh, mass = 1) {
+              this.mesh = mesh;
+              this.mass = mass;
+              this.velocity = new THREE.Vector3();
+              this.attachedTo = null;
+              physicsObjects.push(this);
+            }
+          }
+
+          function physicsStep(dt) {
+            const gravity = new THREE.Vector3(0, -9.8, 0);
+
+            for (const obj of physicsObjects) {
+              if (obj.attachedTo) {
+                const controller = obj.attachedTo;
+                const worldPos = controller.getWorldPosition(new THREE.Vector3());
+                const localPos = controller.worldToLocal(worldPos.clone());
+                obj.mesh.position.copy(localPos);
+                continue;
+              }
+
+              obj.velocity.addScaledVector(gravity, dt);
+              obj.velocity.multiplyScalar(0.995);
+              obj.mesh.position.addScaledVector(obj.velocity, dt);
+
+              if (obj.mesh.position.y < 0.06) {
+                obj.mesh.position.y = 0.06;
+                if (obj.velocity.y < 0) obj.velocity.y *= -0.32;
+                obj.velocity.x *= 0.94;
+                obj.velocity.z *= 0.94;
+              }
+
+              const tableHalfX = 0.8;
+              const tableHalfZ = 0.55;
+              const tableSurface = 0.8 + 0.05;
+
+              if (
+                obj.mesh.position.x > -tableHalfX &&
+                obj.mesh.position.x < tableHalfX &&
+                obj.mesh.position.z > -tableHalfZ &&
+                obj.mesh.position.z < tableHalfZ &&
+                obj.mesh.position.y < tableSurface
+              ) {
+                obj.mesh.position.y = tableSurface;
+                if (obj.velocity.y < 0) obj.velocity.y *= -0.28;
+                obj.velocity.x *= 0.96;
+                obj.velocity.z *= 0.96;
+              }
+            }
+          }
+
+          renderer.setAnimationLoop(() => {
+            const dt = Math.min(clock.getDelta(), 0.05);
+
+            updateControllerInput(leftController);
+            updateControllerInput(rightController);
+            handleLocomotion();
+            physicsStep(dt);
+
+            renderer.render(scene, camera);
+          });
+        }
+
+        window.addEventListener('resize', () => {
+          if (!camera || !renderer) return;
+          camera.aspect = window.innerWidth / window.innerHeight;
+          camera.updateProjectionMatrix();
+          renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+      } catch (e) {
+        showError('WebXR demo failed to start. Check the browser console and make sure the browser supports WebXR and the module imports load successfully.\n\n' + e.toString());
+      }
     </script>
   </body>
 </html>
