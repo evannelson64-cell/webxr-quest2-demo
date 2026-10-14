@@ -60,6 +60,16 @@
         height: 100vh;
       }
     </style>
+
+    <!-- Import map to resolve bare 'three' specifiers used by Three.js examples on CDN -->
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.159.0/build/three.module.js",
+          "three/": "https://unpkg.com/three@0.159.0/"
+        }
+      }
+    </script>
   </head>
   <body>
     <div id="hud">
@@ -78,10 +88,11 @@
       }
 
       try {
-        const THREE = await import('https://unpkg.com/three@0.159.0/build/three.module.js');
-        const { XRControllerModelFactory } = await import('https://unpkg.com/three@0.159.0/examples/jsm/webxr/XRControllerModelFactory.js');
-        const { XRButton } = await import('https://unpkg.com/three@0.159.0/examples/jsm/webxr/XRButton.js');
-        const { TeapotGeometry } = await import('https://unpkg.com/three@0.159.0/examples/jsm/geometries/TeapotGeometry.js');
+        // Use bare specifiers now that importmap maps 'three' to the CDN file
+        const THREE = await import('three');
+        const { XRControllerModelFactory } = await import('three/examples/jsm/webxr/XRControllerModelFactory.js');
+        const { XRButton } = await import('three/examples/jsm/webxr/XRButton.js');
+        const { TeapotGeometry } = await import('three/examples/jsm/geometries/TeapotGeometry.js');
 
         let camera, scene, renderer;
         let cameraRig;
