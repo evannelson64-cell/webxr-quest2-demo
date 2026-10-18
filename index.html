@@ -44,13 +44,26 @@
       background: #ff4757;
       transform: translateX(-50%) scale(1.05);
     }
+    #loading {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: white;
+      font-size: 20px;
+      background: rgba(0,0,0,0.6);
+      padding: 12px 24px;
+      border-radius: 30px;
+      display: none;
+      z-index: 1000;
+    }
   </style>
 </head>
 <body>
-  <div id="info">🍳 Low Poly Kitchen • Pick up items • Move with joystick</div>
+  <div id="info">🍳 Low Poly Kitchen • Pick up items with trigger • Move with left joystick</div>
   <button id="vr-button">Enter VR</button>
+  <div id="loading">Entering VR…</div>
 
-  <!-- Import Three.js and WebXR -->
   <script type="importmap">
     {
       "imports": {
@@ -82,11 +95,24 @@
 
     // --- VR Button ---
     const vrButton = document.getElementById('vr-button');
+    const loadingEl = document.getElementById('loading');
     const vrButtonThree = VRButton.createButton(renderer);
     vrButtonThree.style.display = 'none';
     document.body.appendChild(vrButtonThree);
+
     vrButton.addEventListener('click', () => {
+      loadingEl.style.display = 'block';
       vrButtonThree.click();
+    });
+
+    renderer.xr.addEventListener('sessionstart', () => {
+      loadingEl.style.display = 'none';
+      console.log('XR session started');
+    });
+
+    renderer.xr.addEventListener('sessionend', () => {
+      loadingEl.style.display = 'none';
+      console.log('XR session ended');
     });
 
     // --- Lighting ---
@@ -394,7 +420,6 @@
     playerRig.position.set(0, 0, 0);
     scene.add(playerRig);
 
-    // Move camera and controllers into the rig so they move together
     camera.position.set(0, 1.6, 0);
     playerRig.add(camera);
     playerRig.add(controller0);
@@ -402,7 +427,6 @@
     playerRig.add(grip0);
     playerRig.add(grip1);
 
-    // Start position for desktop viewing
     playerRig.position.set(0, 0, 2.5);
 
     // --- Pickable objects list ---
@@ -415,12 +439,10 @@
       tableTop
     ]);
 
-    // Mark environment objects
     environmentObjects.forEach(obj => {
       obj.userData.isEnvironment = true;
     });
 
-    // Mark pickable objects by traversing the scene
     scene.traverse((obj) => {
       if (obj.isMesh || obj.isGroup) {
         if (environmentObjects.has(obj)) return;
@@ -445,7 +467,6 @@
       }
     });
 
-    // Populate pickableObjects with roots
     scene.traverse((obj) => {
       if (obj.userData.isPickable === true) {
         let parent = obj.parent;
@@ -525,43 +546,53 @@
     controller1.addEventListener('selectstart', onSelectStartPick);
     controller1.addEventListener('selectend', onSelectEndDrop);
 
-    // --- Thumbstick helper ---
-    function getThumbstick(controller) {
-      if (!controller || !controller.gamepad) return { x: 0, y: 0 };
-      let x = 0, y = 0;
-      if (controller.gamepad.axes.length >= 4) {
-        x = controller.gamepad.axes[2];
-        y = controller.gamepad.axes[3];
-      } else if (controller.gamepad.axes.length >= 2) {
-        x = controller.gamepad.axes[0];
-        y = controller.gamepad.axes[1];
+    // --- NEW: Left thumbstick from session ---
+    function getLeftThumbstickFromSession() {
+      const session = renderer.xr.getSession();
+      if (!session) return { x: 0, y: 0 };
+
+      for (const inputSource of session.inputSources) {
+        if (inputSource && inputSource.handedness === 'left' && inputSource.gamepad && inputSource.gamepad.axes) {
+          const axes = inputSource.gamepad.axes;
+          let x = 0;
+          let y = 0;
+
+          if (axes.length >= 4) {
+            const mag01 = Math.hypot(axes[0] || 0, axes[1] || 0);
+            const mag23 = Math.hypot(axes[2] || 0, axes[3] || 0);
+
+            if (mag23 >= mag01) {
+              x = axes[2];
+              y = axes[3];
+            } else {
+              x = axes[0];
+              y = axes[1];
+            }
+          } else if (axes.length >= 2) {
+            x = axes[0];
+            y = axes[1];
+          }
+
+          if (Math.abs(x) < 0.12) x = 0;
+          if (Math.abs(y) < 0.12) y = 0;
+
+          return { x, y };
+        }
       }
-      if (Math.abs(x) < 0.15) x = 0;
-      if (Math.abs(y) < 0.15) y = 0;
-      return { x, y };
+
+      return { x: 0, y: 0 };
     }
 
     // --- Animation Loop ---
     const clock = new THREE.Clock();
-    const moveSpeed = 0.02; // slower for VR comfort
 
     renderer.setAnimationLoop(() => {
       const delta = clock.getDelta();
 
       if (renderer.xr.isPresenting) {
-        // Check both controllers — use whichever has thumbstick input
-        const c0Stick = getThumbstick(controller0);
-        const c1Stick = getThumbstick(controller1);
-
-        let thumbstick = { x: 0, y: 0 };
-        if (c0Stick.x !== 0 || c0Stick.y !== 0) {
-          thumbstick = c0Stick;
-        } else if (c1Stick.x !== 0 || c1Stick.y !== 0) {
-          thumbstick = c1Stick;
-        }
+        const thumbstick = getLeftThumbstickFromSession();
 
         if (thumbstick.x !== 0 || thumbstick.y !== 0) {
-          // Get the XR camera's world direction, flattened to floor plane
           const xrCamera = renderer.xr.getCamera(camera);
           const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(xrCamera.quaternion);
           forward.y = 0;
@@ -572,12 +603,12 @@
           right.normalize();
 
           const moveDirection = new THREE.Vector3();
-          moveDirection.addScaledVector(forward, -thumbstick.y); // push up = forward
+          moveDirection.addScaledVector(forward, -thumbstick.y);
           moveDirection.addScaledVector(right, thumbstick.x);
 
           if (moveDirection.lengthSq() > 0) {
             moveDirection.normalize();
-            playerRig.position.addScaledVector(moveDirection, moveSpeed * delta * 60);
+            playerRig.position.addScaledVector(moveDirection, 1.5 * delta);
           }
         }
       }
