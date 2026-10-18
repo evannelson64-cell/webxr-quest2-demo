@@ -70,7 +70,7 @@
     scene.background = new THREE.Color(0xaaccff); // light sky blue
 
     const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(0, 1.6, 2.5); // approximate eye height
+    camera.position.set(0, 1.6, 2.5); // desktop start
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -90,11 +90,9 @@
     });
 
     // --- Lighting ---
-    // Ambient
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
     scene.add(ambientLight);
 
-    // Main directional light (simulating window light)
     const dirLight = new THREE.DirectionalLight(0xfff5e6, 1.2);
     dirLight.position.set(2, 5, 3);
     dirLight.castShadow = true;
@@ -102,7 +100,6 @@
     dirLight.shadow.mapSize.height = 1024;
     scene.add(dirLight);
 
-    // Fill light
     const fillLight = new THREE.PointLight(0xffeedd, 0.5);
     fillLight.position.set(-2, 3, 2);
     scene.add(fillLight);
@@ -116,29 +113,24 @@
     floor.receiveShadow = true;
     scene.add(floor);
 
-    // Grid helper (light grid for visual reference, low poly style)
     const gridHelper = new THREE.GridHelper(6, 12, 0x8b6b4d, 0x8b6b4d);
     gridHelper.position.y = 0.01;
     scene.add(gridHelper);
 
     // --- Walls (simple low poly) ---
     const wallMat = new THREE.MeshStandardMaterial({ color: 0xf0e6d2, roughness: 0.9 });
-
-    // Back wall
     const backWall = new THREE.Mesh(new THREE.BoxGeometry(6, 3, 0.2), wallMat);
     backWall.position.set(0, 1.5, -2.9);
     backWall.receiveShadow = true;
     backWall.castShadow = true;
     scene.add(backWall);
 
-    // Left wall
     const leftWall = new THREE.Mesh(new THREE.BoxGeometry(0.2, 3, 6), wallMat);
     leftWall.position.set(-2.9, 1.5, 0);
     leftWall.receiveShadow = true;
     leftWall.castShadow = true;
     scene.add(leftWall);
 
-    // Right wall
     const rightWall = new THREE.Mesh(new THREE.BoxGeometry(0.2, 3, 6), wallMat);
     rightWall.position.set(2.9, 1.5, 0);
     rightWall.receiveShadow = true;
@@ -160,18 +152,14 @@
     // --- Refrigerator (low poly) ---
     const fridgeBody = createBox(1.0, 1.8, 0.8, 0xcccccc, { x: -2.2, y: 0.9, z: -2.4 });
     scene.add(fridgeBody);
-    // fridge door handle
     const handle = createBox(0.08, 0.4, 0.08, 0x888888, { x: -1.75, y: 1.0, z: -2.4 });
     scene.add(handle);
-    // fridge divider (freezer section)
     const divider = createBox(1.0, 0.04, 0.8, 0xaaaaaa, { x: -2.2, y: 1.2, z: -2.4 });
     scene.add(divider);
-    // small handle for freezer
     const handle2 = createBox(0.08, 0.2, 0.08, 0x888888, { x: -1.75, y: 1.6, z: -2.4 });
     scene.add(handle2);
 
     // --- Kitchen Counter (L-shaped) ---
-    // Main counter against back wall
     const counterMat = new THREE.MeshStandardMaterial({ color: 0xc7a27a, roughness: 0.7, flatShading: true });
     const counterTop = new THREE.Mesh(new THREE.BoxGeometry(4.0, 0.1, 1.0), counterMat);
     counterTop.position.set(0.5, 0.9, -2.3);
@@ -179,7 +167,6 @@
     counterTop.receiveShadow = true;
     scene.add(counterTop);
 
-    // Counter legs/base (simplified)
     const baseMat = new THREE.MeshStandardMaterial({ color: 0xb08b5e, roughness: 0.8, flatShading: true });
     const base1 = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 0.8), baseMat);
     base1.position.set(-1.2, 0.4, -2.3);
@@ -197,7 +184,6 @@
     base3.receiveShadow = true;
     scene.add(base3);
 
-    // Small side counter (left)
     const sideCounter = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.1, 1.8), counterMat);
     sideCounter.position.set(-2.1, 0.9, -1.2);
     sideCounter.castShadow = true;
@@ -212,7 +198,6 @@
     // --- Stove / Oven (on counter) ---
     const stoveBase = createBox(0.8, 0.1, 0.8, 0x333333, { x: 1.0, y: 0.95, z: -2.3 });
     scene.add(stoveBase);
-    // burner circles (low poly as cylinders)
     const burnerMat = new THREE.MeshStandardMaterial({ color: 0x111111, emissive: 0x331100 });
     for (let i = 0; i < 4; i++) {
       const burner = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.02, 8), burnerMat);
@@ -228,7 +213,6 @@
     sinkBasin.castShadow = true;
     sinkBasin.receiveShadow = true;
     scene.add(sinkBasin);
-    // faucet
     const faucetGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.4, 6);
     const faucetMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.8 });
     const faucet = new THREE.Mesh(faucetGeo, faucetMat);
@@ -243,21 +227,18 @@
       const seatMat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.7, flatShading: true });
       const legMat = new THREE.MeshStandardMaterial({ color: 0x5a3e1a, roughness: 0.8, flatShading: true });
 
-      // Seat
       const seat = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.08, 0.7), seatMat);
       seat.position.y = 0.45;
       seat.castShadow = true;
       seat.receiveShadow = true;
       chairGroup.add(seat);
 
-      // Back
       const back = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.7, 0.08), seatMat);
       back.position.set(0, 0.8, -0.3);
       back.castShadow = true;
       back.receiveShadow = true;
       chairGroup.add(back);
 
-      // Legs (4)
       const legPositions = [
         [-0.3, 0.2, -0.3],
         [0.3, 0.2, -0.3],
@@ -288,7 +269,6 @@
     tableTop.castShadow = true;
     tableTop.receiveShadow = true;
     scene.add(tableTop);
-    // table legs
     const tLegMat = new THREE.MeshStandardMaterial({ color: 0x7a5a3a, roughness: 0.8 });
     const tLegPos = [[0.5-0.7, 0.35, 0.5-0.4], [0.5+0.7, 0.35, 0.5-0.4], [0.5-0.7, 0.35, 0.5+0.4], [0.5+0.7, 0.35, 0.5+0.4]];
     tLegPos.forEach(pos => {
@@ -307,7 +287,6 @@
       plate.castShadow = true;
       plate.receiveShadow = true;
       scene.add(plate);
-      // inner circle
       const innerMat = new THREE.MeshStandardMaterial({ color: 0xe0e0e0, roughness: 0.4 });
       const inner = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.01, 8), innerMat);
       inner.position.set(x, y + 0.015, z);
@@ -319,19 +298,16 @@
     function createFork(x, y, z, rotY = 0) {
       const forkGroup = new THREE.Group();
       const metalMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.7, roughness: 0.3 });
-      // handle
       const handle = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.01, 0.2), metalMat);
       handle.position.set(0, 0, 0);
       handle.castShadow = true;
       handle.receiveShadow = true;
       forkGroup.add(handle);
-      // head
       const head = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.01, 0.06), metalMat);
       head.position.set(0, 0, 0.12);
       head.castShadow = true;
       head.receiveShadow = true;
       forkGroup.add(head);
-      // tines (3 small boxes)
       for (let i = -1; i <= 1; i++) {
         const tine = new THREE.Mesh(new THREE.BoxGeometry(0.015, 0.01, 0.04), metalMat);
         tine.position.set(i * 0.02, 0, 0.16);
@@ -347,13 +323,11 @@
     function createSpoon(x, y, z, rotY = 0) {
       const spoonGroup = new THREE.Group();
       const metalMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.7, roughness: 0.3 });
-      // handle
       const handle = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.01, 0.2), metalMat);
       handle.position.set(0, 0, 0);
       handle.castShadow = true;
       handle.receiveShadow = true;
       spoonGroup.add(handle);
-      // bowl (ellipsoid-ish using sphere scaled)
       const bowlGeo = new THREE.SphereGeometry(0.05, 6, 4);
       const bowl = new THREE.Mesh(bowlGeo, metalMat);
       bowl.scale.set(1, 0.2, 1.2);
@@ -366,19 +340,16 @@
       scene.add(spoonGroup);
     }
 
-    // Place items on table
     createPlate(0.5, 0.81, 0.5);
     createFork(0.4, 0.82, 0.45, 0.5);
     createSpoon(0.6, 0.82, 0.55, -0.3);
     createPlate(0.8, 0.81, 0.3);
     createFork(0.75, 0.82, 0.25, 0.2);
 
-    // Items on counter
     createPlate(-0.5, 0.96, -2.3);
     createSpoon(-0.3, 0.96, -2.3);
     createFork(0.2, 0.96, -2.3);
 
-    // A couple of mugs (cylinders) on counter
     const mugMat = new THREE.MeshStandardMaterial({ color: 0x6b8e23, roughness: 0.5 });
     const mug1 = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.15, 6), mugMat);
     mug1.position.set(-1.0, 0.98, -2.1);
@@ -394,13 +365,11 @@
     // --- Controller Setup for Picking Up Objects ---
     const controllerModelFactory = new XRControllerModelFactory();
 
-    // Controllers
     const controller0 = renderer.xr.getController(0);
     const controller1 = renderer.xr.getController(1);
     scene.add(controller0);
     scene.add(controller1);
 
-    // Grip spaces for models (visual representation)
     const grip0 = renderer.xr.getControllerGrip(0);
     grip0.add(controllerModelFactory.createControllerModel(grip0));
     scene.add(grip0);
@@ -419,36 +388,9 @@
     controller1.add(ray1);
 
     // --- Interaction: Pick up and place objects ---
-    // We'll collect all movable objects (everything except floor, walls, large furniture for simplicity)
-    // But we need to identify them. Let's create a list of pickable items by tagging them during creation.
     const pickableObjects = [];
 
-    // We'll go through the scene and collect meshes that are small and not part of the environment.
-    // For simplicity, we'll manually add the items we want to be pickable.
-    // Let's find them by scanning scene children and filtering by size.
-    // Better: during creation, we can push to pickableObjects.
-    // But since we created them inline, let's just scan after creation for objects with small bounding boxes.
-    // To keep it simple and reliable, we'll tag specific objects by name or just identify by position.
-
-    // Instead of complex scanning, let's just re-create the items as pickable by wrapping them.
-    // But we already created them. Let's do a simple approach: collect all meshes that are not part of the large furniture.
-    // Actually, let's just collect everything that is not floor, walls, fridge, counter, table, chair.
-    // This is a bit tricky. Let's add a userData flag when we create items.
-
-    // I'll refactor: I'll add a 'pickable' flag to items we want to pick up.
-    // Since we already created them, let's traverse and select by geometry type or size.
-    // But for this demo, let's just manually add the items we know we created as small.
-    // However, to keep the code clean, I'll re-implement the creation of small items with a flag.
-
-    // Quick fix: traverse the scene and add meshes that are small (volume < 0.1) or are groups.
-    // But groups are not directly pickable as a whole. We'll just pick individual meshes.
-    // Let's clear the previously added small items and re-add with a pickable flag.
-    // Actually, we can just scan and add them if they are not marked as environment.
-
-    // To avoid confusion, I'll mark environment objects with a userData.isEnvironment = true.
-    // And then traverse and add the rest.
-
-    // Mark large objects
+    // Mark large environment objects so we don't pick them
     floor.userData.isEnvironment = true;
     gridHelper.userData.isEnvironment = true;
     backWall.userData.isEnvironment = true;
@@ -468,274 +410,103 @@
     sinkBasin.userData.isEnvironment = true;
     faucet.userData.isEnvironment = true;
     tableTop.userData.isEnvironment = true;
-    // table legs are environment
-    tLegPos.forEach(pos => {
-      // they are already added, but let's mark them by position?
-      // we can traverse and mark by proximity to known positions, but simpler: skip.
-      // Actually, we can just traverse and mark all meshes that are large.
-    });
 
-    // Instead, let's just gather all meshes that are not environment by traversing and checking size.
-    // We'll do it after all objects are added. Let's do a traverse and if the mesh is not marked and is not a group
-    // and its bounding box volume is small (< 0.1), we add it to pickableObjects.
-    // But groups like forks and spoons are groups containing multiple meshes. We need to pick the whole group.
-    // So we need to identify groups that are pickable.
-
-    // Simpler: I'll create a list of pickable objects manually by referring to the variables I created.
-    // But I didn't store references to all. I'll just re-create them in a dedicated function for pickables.
-
-    // To save time and ensure correctness, I'll remove the previously added small items and re-add them with a flag.
-
-    // I'll clear the scene of small items by traversing and removing meshes that are not environment and not the controllers.
-    // That's messy. Let's just proceed and manually add pickable items with a flag.
-
-    // We'll re-add the plates, forks, spoons, mugs, and maybe burners as pickable.
-
-    // Remove the previously added small items? They are already in scene. We can just add them to pickableObjects
-    // by identifying them. Let's traverse the scene and add objects that are not environment, not controllers,
-    // not lights, not cameras, and have a small bounding box.
-
-    // We'll do this after setting up controllers, so we know which are controllers.
-
-    // Let's wait until the end to populate pickableObjects.
-
-    // --- VR Movement (Joystick) ---
-    // We'll use the controller's gamepad axes to move the camera (dolly).
-    // For Quest 2, the left controller's thumbstick typically has axes [2,3] for x,y.
-    // We'll implement a simple movement system that moves the camera rig (group containing camera and controllers).
-
-    // Create a rig (player) to move around
+    // --- Player rig and VR movement (improved joystick support) ---
     const playerRig = new THREE.Group();
-    playerRig.position.set(0, 0, 0);
+    playerRig.position.set(0, 0, 2.5); // starting position (same as original desktop view)
     scene.add(playerRig);
 
-    // Move camera to rig
+    // Put camera and controllers under the rig so moving the rig moves the player
+    // For non-VR, camera position controls desktop view. For VR, WebXR sets camera pose inside the rig.
+    camera.position.set(0, 1.6, 0); // desktop height
     playerRig.add(camera);
 
-    // Controllers should also be in the rig so they move with the player
-    // But we already added them to scene. We need to move them to the rig.
-    // We'll re-add them to the rig.
-    // Actually, for WebXR, the controllers are automatically positioned relative to the reference space.
-    // The camera is also positioned by WebXR. If we move the camera manually, it breaks the XR tracking.
-    // The correct way: use a dolly (player group) that contains the camera and controllers.
-    // But WebXR sets the camera position based on headset tracking. So we should not move the camera directly.
-    // Instead, we move a parent group (playerRig) and keep the camera at (0,0,0) within it? No.
-    // Standard approach: Use a "dolly" group that contains the camera and controllers.
-    // The camera's local position is set by WebXR, so we leave it at (0, 0, 0) relative to the dolly.
-    // But we already set camera.position to (0, 1.6, 2.5). That's for desktop mode.
-    // For VR, we need the camera at the rig's origin and let WebXR handle the offset.
-    // So we should reset camera position to (0, 1.6, 0) maybe? Actually, for VR, the headset provides the height.
-    // So we should set camera.position.set(0, 0, 0) and add it to the rig, and set the rig position to the desired start.
-
-    // Let's adjust:
-    // For desktop mode, we want the camera at eye level. For VR, we want the camera at (0,0,0) in the rig.
-    // We'll handle both by using the rig.
-
-    // Reset camera position for VR
-    camera.position.set(0, 1.6, 0); // desktop start height
-    // When entering VR, WebXR will override the camera's position with headset data.
-    // But we need to ensure the rig is the parent.
-
-    // Move camera to rig
-    playerRig.add(camera);
-
-    // Move controllers to rig
+    // We'll let controllers stay in scene but also add them to rig so rig movement affects them
     playerRig.add(controller0);
     playerRig.add(controller1);
     playerRig.add(grip0);
     playerRig.add(grip1);
 
-    // Position the rig for start (desktop view)
-    playerRig.position.set(0, 0, 2.5);
+    // Movement configuration
+    const moveSpeed = 1.5; // meters per second
 
-    // For VR, the rig will be at (0,0,2.5) and the user's head will be offset by headset tracking.
-    // That's fine. The user can move the rig with the joystick.
+    // We'll detect which controller is left by listening to connected events
+    let leftController = null;
 
-    // Movement variables
-    const moveSpeed = 0.05;
-    const rotationSpeed = 0.03;
-    let prevLeftStickX = 0;
-    let prevLeftStickY = 0;
+    function onControllerConnected(ev) {
+      const controller = ev.target;
+      const inputSource = ev.data || ev;
+      // three.js 'connected' event gives ev.data with handedness and gamepad
+      const handedness = inputSource.handedness || (inputSource.data && inputSource.data.handedness) || controller.handedness || null;
+      controller.userData.handedness = handedness;
+      if (handedness === 'left') leftController = controller;
+    }
 
-    // Controllers thumbstick axes
-    // Quest 2: left controller axes: [2] = x, [3] = y (often)
-    // We'll read from controller0 (left) for movement.
+    function onControllerDisconnected(ev) {
+      const controller = ev.target;
+      const handedness = controller.userData.handedness;
+      if (handedness === 'left' && leftController === controller) leftController = null;
+      controller.userData.handedness = null;
+    }
 
-    // We'll use the renderer.xr.getController(0) which is the left controller? Not guaranteed.
-    // Actually, controller0 is usually left, controller1 right. But we can check handedness.
-    // We'll use both controllers and check which one has a thumbstick with x,y not zero.
+    controller0.addEventListener('connected', onControllerConnected);
+    controller1.addEventListener('connected', onControllerConnected);
+    controller0.addEventListener('disconnected', onControllerDisconnected);
+    controller1.addEventListener('disconnected', onControllerDisconnected);
 
-    // Simpler: just use controller0's gamepad axes 2 and 3.
-
-    // We'll need to check if controller is connected.
-
-    // Let's set up a function to get thumbstick values.
-
+    // Thumbstick helper that picks the correct axes pair (works for different controllers)
     function getThumbstick(controller) {
       if (!controller || !controller.gamepad) return { x: 0, y: 0 };
-      // Some controllers have axes [0,1] for touchpad, [2,3] for thumbstick.
-      // Quest 2 uses axes 2 and 3 for thumbstick.
+      const axes = controller.gamepad.axes || [];
       let x = 0, y = 0;
-      if (controller.gamepad.axes.length >= 4) {
-        x = controller.gamepad.axes[2];
-        y = controller.gamepad.axes[3];
-      } else if (controller.gamepad.axes.length >= 2) {
-        x = controller.gamepad.axes[0];
-        y = controller.gamepad.axes[1];
+      if (axes.length >= 4) {
+        const mag01 = Math.hypot(axes[0] || 0, axes[1] || 0);
+        const mag23 = Math.hypot(axes[2] || 0, axes[3] || 0);
+        if (mag23 > mag01) {
+          x = axes[2]; y = axes[3];
+        } else {
+          x = axes[0]; y = axes[1];
+        }
+      } else if (axes.length >= 2) {
+        x = axes[0]; y = axes[1];
       }
-      // Dead zone
-      if (Math.abs(x) < 0.1) x = 0;
-      if (Math.abs(y) < 0.1) y = 0;
+      // dead zone
+      if (Math.abs(x) < 0.12) x = 0;
+      if (Math.abs(y) < 0.12) y = 0;
       return { x, y };
     }
 
-    // In the animation loop, we'll update the rig position based on thumbstick.
-    // Also handle rotation with the right thumbstick? For simplicity, we'll just use left for movement,
-    // and maybe snap turn with right? Not requested. Just movement.
-
-    // --- Picking up objects ---
-    // We'll use a raycaster from the controller to pick objects on selectstart.
-    // And attach them to the controller on select.
-
-    // State for each controller
-    const controllerState = [
-      { object: null, intersected: null }, // left
-      { object: null, intersected: null }  // right
-    ];
-
-    // Raycaster
+    // --- Picking up objects (selectstart/selectend using trigger) ---
+    const controllerState = [ { object: null }, { object: null } ];
     const raycaster = new THREE.Raycaster();
 
-    // Helper to check if object is pickable
     function isPickable(obj) {
-      // We'll mark pickable objects with userData.isPickable = true
       return obj.userData.isPickable === true;
     }
 
-    // We'll now mark all small items as pickable.
-    // Let's traverse the scene after all objects are added.
-
-    // We'll wait for the next tick to ensure everything is added.
-
-    // --- Select start/end handlers ---
-    function onSelectStart(event) {
-      const controller = event.target;
-      const controllerIndex = controller === controller0 ? 0 : 1;
-
-      // If already holding an object, release it
-      if (controllerState[controllerIndex].object) {
-        const heldObj = controllerState[controllerIndex].object;
-        // Detach from controller
-        controller.remove(heldObj);
-        // Reset position to world? We'll just leave it at its last world position.
-        // But we need to add it back to the scene, not the controller.
-        // When we detach, we must preserve world position.
-        const worldPos = new THREE.Vector3();
-        heldObj.getWorldPosition(worldPos);
-        scene.add(heldObj);
-        heldObj.position.copy(worldPos);
-        // Optionally snap to floor? No.
-        controllerState[controllerIndex].object = null;
-        return;
-      }
-
-      // Otherwise, try to pick up an object
-      // Get the controller's world direction
-      const tempMatrix = new THREE.Matrix4();
-      tempMatrix.identity().extractRotation(controller.matrixWorld);
-      raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
-      raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
-
-      // Intersect with pickable objects
-      const intersects = raycaster.intersectObjects(pickableObjects, true); // true for recursive (groups)
-
-      if (intersects.length > 0) {
-        // Find the first intersect that belongs to a pickable object
-        // We need to find the root group that is pickable.
-        let hitObj = intersects[0].object;
-        // Traverse up to find the pickable root
-        let pickableRoot = null;
-        while (hitObj) {
-          if (hitObj.userData.isPickable === true) {
-            pickableRoot = hitObj;
-            break;
-          }
-          hitObj = hitObj.parent;
-        }
-        if (pickableRoot) {
-          // Attach to controller
-          controller.attach(pickableRoot);
-          // Reset position to zero? attach keeps world position relative to controller.
-          // Actually attach preserves world transform, so it will be far away.
-          // We want it to be in front of the controller.
-          // Let's set local position to (0, 0, -0.2) or something.
-          pickableRoot.position.set(0, 0, -0.15);
-          pickableRoot.rotation.set(0, 0, 0);
-          controllerState[controllerIndex].object = pickableRoot;
-        }
-      }
-    }
-
-    function onSelectEnd(event) {
-      // We handle release on select start (when pressing again) but also on release.
-      // Actually, we want to hold on select, release on select end.
-      // The above onSelectStart both picks and releases. That's weird.
-      // Let's simplify: onSelectStart picks up or drops if already holding.
-      // But typically selectstart picks, selectend drops.
-      // Let's change: onSelectStart picks if not holding, releases if holding.
-      // onSelectEnd does nothing? Or we can use squeeze for drop?
-      // I'll stick with: selectstart toggles pick/drop.
-      // But for better UX, let's use selectstart to pick, and selectend to drop.
-      // However, Quest 2 triggers are pressed and released quickly. Holding trigger to hold object is awkward.
-      // Most WebXR examples use squeeze (grip) to pick up and release.
-      // But we'll use selectstart to pick and selectend to drop? That means you have to hold the trigger.
-      // That's not great. Let's use squeeze (grip button) to pick/drop.
-      // Actually, many VR apps use grip to grab, trigger to interact.
-      // I'll use selectstart (trigger) to pick up, and selectend to drop. That way you hold trigger to hold object.
-      // But the user asked "make objects able to be picked up and placed down" - so holding trigger is fine.
-      // However, the prompt says "you can move with the joystick and not just 6dof but also have 6dof"
-      // So movement with joystick is separate.
-      // Let's use trigger to pick up and drop: press to pick, release to drop.
-      // That's intuitive.
-
-      // So onSelectStart: pick up
-      // onSelectEnd: drop
-
-      // Let's rewrite handlers accordingly.
-
-    }
-
-    // Redefining handlers
     function onSelectStartPick(event) {
       const controller = event.target;
-      const controllerIndex = controller === controller0 ? 0 : 1;
+      const index = controller === controller0 ? 0 : 1;
+      if (controllerState[index].object) return; // already holding
 
-      // If already holding an object, ignore (or drop?) - we'll drop on release
-      if (controllerState[controllerIndex].object) return;
-
-      // Try to pick up
       const tempMatrix = new THREE.Matrix4();
       tempMatrix.identity().extractRotation(controller.matrixWorld);
       raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
       raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
 
       const intersects = raycaster.intersectObjects(pickableObjects, true);
-
       for (let i = 0; i < intersects.length; i++) {
-        let hitObj = intersects[i].object;
-        let pickableRoot = null;
-        while (hitObj) {
-          if (hitObj.userData.isPickable === true) {
-            pickableRoot = hitObj;
-            break;
-          }
-          hitObj = hitObj.parent;
+        let hit = intersects[i].object;
+        let root = null;
+        while (hit) {
+          if (hit.userData.isPickable === true) { root = hit; break; }
+          hit = hit.parent;
         }
-        if (pickableRoot) {
-          controller.attach(pickableRoot);
-          pickableRoot.position.set(0, 0, -0.2);
-          pickableRoot.rotation.set(0, 0, 0);
-          controllerState[controllerIndex].object = pickableRoot;
+        if (root) {
+          controller.attach(root);
+          root.position.set(0, 0, -0.2);
+          root.rotation.set(0, 0, 0);
+          controllerState[index].object = root;
           break;
         }
       }
@@ -743,143 +514,71 @@
 
     function onSelectEndDrop(event) {
       const controller = event.target;
-      const controllerIndex = controller === controller0 ? 0 : 1;
-
-      if (controllerState[controllerIndex].object) {
-        const heldObj = controllerState[controllerIndex].object;
-        // Detach from controller
-        controller.remove(heldObj);
-        // Add back to scene with current world position
+      const index = controller === controller0 ? 0 : 1;
+      if (controllerState[index].object) {
+        const held = controllerState[index].object;
+        controller.remove(held);
         const worldPos = new THREE.Vector3();
-        heldObj.getWorldPosition(worldPos);
-        scene.add(heldObj);
-        heldObj.position.copy(worldPos);
-        controllerState[controllerIndex].object = null;
+        held.getWorldPosition(worldPos);
+        scene.add(held);
+        held.position.copy(worldPos);
+        controllerState[index].object = null;
       }
     }
 
-    // Attach listeners
     controller0.addEventListener('selectstart', onSelectStartPick);
     controller0.addEventListener('selectend', onSelectEndDrop);
     controller1.addEventListener('selectstart', onSelectStartPick);
     controller1.addEventListener('selectend', onSelectEndDrop);
 
-    // --- Mark pickable objects ---
-    // We'll traverse the scene and mark small items (plates, forks, spoons, mugs, burners, etc.)
-    // We'll skip environment and controllers.
-    // To avoid marking environment, we check if the object is in our environment list.
-    // We'll use a set of environment objects.
-    const environmentObjects = new Set([
-      floor, gridHelper, backWall, leftWall, rightWall,
-      fridgeBody, handle, divider, handle2,
-      counterTop, base1, base2, base3, sideCounter, sideBase,
-      stoveBase, sinkBasin, faucet,
-      tableTop,
-      // table legs are not in the set, but we can mark them by size
-    ]);
-
-    // Also mark table legs as environment
-    tLegPos.forEach(pos => {
-      // find mesh at that position? It's tricky. We'll just rely on size filtering later.
-    });
-
-    // We'll do a scene traverse and mark objects that are not environment and are small.
+    // --- Mark pickable objects by small bounding volume ---
     scene.traverse((obj) => {
       if (obj.isMesh || obj.isGroup) {
-        // Skip if environment
-        if (environmentObjects.has(obj)) return;
         if (obj.userData.isEnvironment) return;
-        // Skip controllers and camera
-        if (obj === camera || obj === controller0 || obj === controller1 ||
-            obj === grip0 || obj === grip1 || obj === playerRig) return;
-        if (obj.parent === controller0 || obj.parent === controller1) return; // held items
-        // Skip lights
+        if (obj === camera || obj === controller0 || obj === controller1 || obj === grip0 || obj === grip1) return;
         if (obj.isLight) return;
-
-        // Check size via bounding box
         const box = new THREE.Box3().setFromObject(obj);
         const size = new THREE.Vector3();
         box.getSize(size);
-        const volume = size.x * size.y * size.z;
-        // If volume is small (< 0.05), mark as pickable
-        if (volume < 0.05) {
+        const volume = Math.abs(size.x * size.y * size.z);
+        if (volume > 0 && volume < 0.05) {
           obj.userData.isPickable = true;
-          // Also mark children if it's a group
-          if (obj.isGroup) {
-            obj.children.forEach(child => {
-              if (child.isMesh) child.userData.isPickable = true;
-            });
-          }
         }
       }
     });
 
-    // Also explicitly mark the plates, forks, spoons, mugs, burners
-    // Since some might be small but not caught due to bounding box of group? Let's just mark by position or name.
-    // We'll traverse and mark by geometry type and size.
-    // Actually, the traverse above should catch them. But to be safe, we can mark the items we created.
-    // We'll just do a second pass to ensure.
-    // For plates (cylinders with radius 0.2, height 0.03) volume ~ 0.0037 < 0.05 -> should be marked.
-    // For forks/spoons (groups) volume will be small -> marked.
-    // Mugs volume ~ 0.003 -> marked.
-    // Burners volume small -> marked.
-
-    // Let's also ensure that the items we want are in pickableObjects list.
-    // We need to populate pickableObjects with the roots (groups or meshes).
     pickableObjects.length = 0;
-    scene.traverse((obj) => {
-      if (obj.userData.isPickable === true) {
-        // Only add if it's not a child of another pickable (to avoid duplicates)
-        let parent = obj.parent;
-        let isChildOfPickable = false;
-        while (parent) {
-          if (parent.userData.isPickable === true) {
-            isChildOfPickable = true;
-            break;
-          }
-          parent = parent.parent;
-        }
-        if (!isChildOfPickable) {
-          pickableObjects.push(obj);
-        }
-      }
-    });
+    scene.traverse((obj) => { if (obj.userData.isPickable === true) {
+      // only add roots
+      let parent = obj.parent; let isChild = false; while (parent) { if (parent.userData.isPickable === true) { isChild = true; break; } parent = parent.parent; }
+      if (!isChild) pickableObjects.push(obj);
+    }});
 
     // --- Animation Loop ---
     const clock = new THREE.Clock();
-
     renderer.setAnimationLoop(() => {
       const delta = clock.getDelta();
 
-      // Movement using left controller thumbstick
       if (renderer.xr.isPresenting) {
-        // Find left controller (controller0 is usually left)
-        // We'll use controller0 for movement.
-        const thumbstick = getThumbstick(controller0);
-        if (thumbstick.x !== 0 || thumbstick.y !== 0) {
-          // Move the player rig
-          // Direction relative to the camera's forward direction
-          const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-          forward.y = 0;
-          forward.normalize();
-          const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
-          right.y = 0;
-          right.normalize();
+        const movementController = leftController || controller0; // fallback if we didn't detect handedness
+        const thumb = getThumbstick(movementController);
+        if (thumb.x !== 0 || thumb.y !== 0) {
+          // compute forward (camera's horizontal forward) and right vectors
+          const camQuat = camera.quaternion.clone();
+          const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camQuat);
+          forward.y = 0; forward.normalize();
+          const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camQuat);
+          right.y = 0; right.normalize();
 
+          // thumb.y typically is -1 when stick pushed forward; use -thumb.y for forward
           const moveDirection = new THREE.Vector3();
-          moveDirection.addScaledVector(forward, -thumbstick.y); // y is forward/backward
-          moveDirection.addScaledVector(right, thumbstick.x);
-          moveDirection.normalize();
+          moveDirection.addScaledVector(forward, -thumb.y);
+          moveDirection.addScaledVector(right, thumb.x);
 
-          // Move the rig
-          playerRig.position.addScaledVector(moveDirection, moveSpeed * delta * 60); // adjust for frame rate
+          // apply movement scaled by moveSpeed (m/s) and delta
+          playerRig.position.addScaledVector(moveDirection, moveSpeed * delta);
         }
-
-        // Also allow right controller thumbstick to rotate? Not requested, skip.
       }
-
-      // Update raycaster visuals (optional)
-      // We can also show a line from controller to intersected object, but skip for simplicity.
 
       renderer.render(scene, camera);
     });
@@ -891,13 +590,8 @@
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
 
-    // Add some floating particles or ambient? No need.
-
-    // Debug: log pickable count
     console.log('Pickable objects:', pickableObjects.length);
 
-    // For desktop testing: move with WASD? Not necessary, but we can add simple orbit? No.
-    // Just let the user see the scene. They can enter VR by clicking button.
   </script>
 </body>
 </html>
