@@ -1,0 +1,1525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Low Poly Memory Palace – WebXR with Three.js</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    #info {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background: rgba(0, 0, 0, 0.7);
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: 30px;
+      pointer-events: none;
+      font-size: 14px;
+      backdrop-filter: blur(5px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    #vr-button {
+      position: absolute;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #ff6b6b;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 40px;
+      font-weight: bold;
+      cursor: pointer;
+      z-index: 100;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+      transition: 0.2s;
+      letter-spacing: 0.5px;
+    }
+    #vr-button:hover {
+      background: #ff4757;
+      transform: translateX(-50%) scale(1.05);
+    }
+    #loading {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: white;
+      font-size: 20px;
+      background: rgba(0,0,0,0.6);
+      padding: 12px 24px;
+      border-radius: 30px;
+      display: none;
+      z-index: 1000;
+    }
+  </style>
+</head>
+<body>
+  <div id="info">🍳 Kitchen + 🎈 Fun Room • Trigger to hear Hindi • Move with left joystick</div>
+  <button id="vr-button">Enter VR</button>
+  <div id="loading">Entering VR…</div>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.126.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.126.0/examples/jsm/"
+      }
+    }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { VRButton } from 'three/addons/webxr/VRButton.js';
+    import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFactory.js';
+
+    // --- Scene Setup ---
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xaaccff);
+
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 1.6, 2.5);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.xr.enabled = true;
+    document.body.appendChild(renderer.domElement);
+
+    // --- VR Button ---
+    const vrButton = document.getElementById('vr-button');
+    const loadingEl = document.getElementById('loading');
+    const vrButtonThree = VRButton.createButton(renderer);
+    vrButtonThree.style.display = 'none';
+    document.body.appendChild(vrButtonThree);
+
+    vrButton.addEventListener('click', () => {
+      unlockAudio();
+      loadingEl.style.display = 'block';
+      vrButtonThree.click();
+    });
+
+    renderer.xr.addEventListener('sessionstart', () => {
+      unlockAudio();
+      loadingEl.style.display = 'none';
+      console.log('XR session started');
+    });
+
+    renderer.xr.addEventListener('sessionend', () => {
+      loadingEl.style.display = 'none';
+      console.log('XR session ended');
+    });
+
+    // --- Lighting ---
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambientLight);
+
+    const dirLight = new THREE.DirectionalLight(0xfff5e6, 1.2);
+    dirLight.position.set(2, 5, 3);
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.width = 1024;
+    dirLight.shadow.mapSize.height = 1024;
+    scene.add(dirLight);
+
+    const fillLight = new THREE.PointLight(0xffeedd, 0.5);
+    fillLight.position.set(-2, 3, 2);
+    scene.add(fillLight);
+
+    // --- Floor ---
+    const floorMat = new THREE.MeshStandardMaterial({ color: 0xd9b382, roughness: 0.8 });
+    const floorGeo = new THREE.PlaneGeometry(6, 6);
+    const floor = new THREE.Mesh(floorGeo, floorMat);
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = 0;
+    floor.receiveShadow = true;
+    scene.add(floor);
+
+    const gridHelper = new THREE.GridHelper(6, 12, 0x8b6b4d, 0x8b6b4d);
+    gridHelper.position.y = 0.01;
+    scene.add(gridHelper);
+
+    // --- Walls ---
+    const wallMat = new THREE.MeshStandardMaterial({ color: 0xf0e6d2, roughness: 0.9 });
+
+    const backWall = new THREE.Mesh(new THREE.BoxGeometry(6, 3, 0.2), wallMat);
+    backWall.position.set(0, 1.5, -2.9);
+    backWall.receiveShadow = true;
+    backWall.castShadow = true;
+    scene.add(backWall);
+
+    const leftWall = new THREE.Mesh(new THREE.BoxGeometry(0.2, 3, 6), wallMat);
+    leftWall.position.set(-2.9, 1.5, 0);
+    leftWall.receiveShadow = true;
+    leftWall.castShadow = true;
+    scene.add(leftWall);
+
+    // Right wall with a doorway into the second room
+    const rightWallA = new THREE.Mesh(new THREE.BoxGeometry(0.2, 3, 3.8), wallMat);
+    rightWallA.position.set(2.9, 1.5, -1.1);
+    rightWallA.receiveShadow = true;
+    rightWallA.castShadow = true;
+    scene.add(rightWallA);
+
+    const rightWallB = new THREE.Mesh(new THREE.BoxGeometry(0.2, 3, 0.8), wallMat);
+    rightWallB.position.set(2.9, 1.5, 2.6);
+    rightWallB.receiveShadow = true;
+    rightWallB.castShadow = true;
+    scene.add(rightWallB);
+
+    const doorLintel = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.6, 1.4), wallMat);
+    doorLintel.position.set(2.9, 2.7, 1.5);
+    doorLintel.receiveShadow = true;
+    doorLintel.castShadow = true;
+    scene.add(doorLintel);
+
+    const doorFrameMat = new THREE.MeshStandardMaterial({ color: 0x6b4423, roughness: 0.7 });
+    [0.8, 2.2].forEach((z) => {
+      const post = new THREE.Mesh(new THREE.BoxGeometry(0.28, 2.4, 0.12), doorFrameMat);
+      post.position.set(2.9, 1.2, z);
+      post.castShadow = true;
+      post.receiveShadow = true;
+      scene.add(post);
+    });
+    const doorTop = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.12, 1.52), doorFrameMat);
+    doorTop.position.set(2.9, 2.4, 1.5);
+    doorTop.castShadow = true;
+    doorTop.receiveShadow = true;
+    scene.add(doorTop);
+
+    // --- Helper ---
+    function createBox(w, h, d, color, pos, rot = null) {
+      const geo = new THREE.BoxGeometry(w, h, d);
+      const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.5, flatShading: true });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(pos.x, pos.y, pos.z);
+      if (rot) mesh.rotation.set(rot.x, rot.y, rot.z);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      return mesh;
+    }
+
+    function createCylinder(rTop, rBottom, h, segments, color, pos, rot = null) {
+      const geo = new THREE.CylinderGeometry(rTop, rBottom, h, segments);
+      const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.55, flatShading: true });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(pos.x, pos.y, pos.z);
+      if (rot) mesh.rotation.set(rot.x, rot.y, rot.z);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      return mesh;
+    }
+
+    function createSphere(radius, color, pos, scale = null) {
+      const geo = new THREE.SphereGeometry(radius, 10, 8);
+      const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.6, flatShading: true });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(pos.x, pos.y, pos.z);
+      if (scale) mesh.scale.set(scale.x, scale.y, scale.z);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      return mesh;
+    }
+
+    const HINDI = {
+      'Refrigerator': 'फ्रिज',
+      'Counter': 'काउंटर',
+      'Stove': 'चूल्हा',
+      'Sink': 'सिंक',
+      'Chair': 'कुर्सी',
+      'Table': 'मेज़',
+      'Plate': 'थाली',
+      'Fork': 'कांटा',
+      'Spoon': 'चम्मच',
+      'Mug': 'मग',
+      'Sofa': 'सोफ़ा',
+      'TV': 'टीवी',
+      'Lamp': 'लैंप',
+      'Clock': 'घड़ी',
+      'Book': 'किताब',
+      'Plant': 'पौधा',
+      'Rug': 'कालीन',
+      'Window': 'खिड़की',
+      'Bookshelf': 'किताबों की अलमारी',
+      'Guitar': 'गिटार',
+      'Balloon': 'गुब्बारा',
+      'Teddy Bear': 'टेडी बियर',
+      'Robot': 'रोबोट',
+      'Skateboard': 'स्केटबोर्ड',
+      'Pizza': 'पिज़्ज़ा',
+      'Rubber Duck': 'रबर बत्तख',
+      'UFO': 'यूएफ़ओ',
+      'Dinosaur': 'डायनासोर',
+      'Magic Lamp': 'जादुई चिराग',
+      'Disco Ball': 'डिस्को बॉल'
+    };
+    function addLabel(parent, text, height) {
+      const hindi = HINDI[text] || text;
+      parent.userData.hindi = hindi;
+      parent.userData.label = text;
+      const canvas = document.createElement('canvas');
+      canvas.width = 256;
+      canvas.height = 96;
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, 256, 96);
+      ctx.fillStyle = '#ffffff';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.shadowColor = 'rgba(0,0,0,0.8)';
+      ctx.shadowBlur = 4;
+      ctx.font = 'bold 24px Arial';
+      ctx.fillText(text, 128, 28);
+      ctx.font = 'bold 26px "Noto Sans Devanagari", "Mangal", Arial';
+      ctx.fillText(hindi, 128, 68);
+      // tiny play triangle
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.moveTo(96, 20);
+      ctx.lineTo(96, 36);
+      ctx.lineTo(110, 28);
+      ctx.closePath();
+      ctx.fill();
+      const texture = new THREE.CanvasTexture(canvas);
+      const spriteMat = new THREE.SpriteMaterial({ map: texture, depthTest: false, transparent: true });
+      const sprite = new THREE.Sprite(spriteMat);
+      sprite.scale.set(0.6, 0.22, 1);
+      sprite.position.set(0, height, 0);
+      sprite.userData.isPickable = false;
+      sprite.raycast = function() {};
+      parent.add(sprite);
+      return sprite;
+    }
+    // --- Refrigerator ---
+    const fridgeGroup = new THREE.Group();
+    const fridgeBody = createBox(1.0, 1.8, 0.8, 0xcccccc, { x: 0, y: 0.9, z: 0 });
+    fridgeGroup.add(fridgeBody);
+    const handle = createBox(0.08, 0.4, 0.08, 0x888888, { x: 0.45, y: 1.0, z: 0 });
+    fridgeGroup.add(handle);
+    const divider = createBox(1.0, 0.04, 0.8, 0xaaaaaa, { x: 0, y: 1.2, z: 0 });
+    fridgeGroup.add(divider);
+    const handle2 = createBox(0.08, 0.2, 0.08, 0x888888, { x: 0.45, y: 1.6, z: 0 });
+    fridgeGroup.add(handle2);
+    fridgeGroup.position.set(-2.2, 0, -2.4);
+    fridgeGroup.userData.isEnvironment = true;
+    fridgeGroup.userData.label = 'Refrigerator';
+    [fridgeBody, handle, divider, handle2].forEach(m => { m.userData.isEnvironment = true; m.userData.isPickable = false; });
+    scene.add(fridgeGroup);
+    addLabel(fridgeGroup, 'Refrigerator', 2.0);
+
+    // --- Kitchen Counter ---
+    const counterMat = new THREE.MeshStandardMaterial({ color: 0xc7a27a, roughness: 0.7, flatShading: true });
+    const counterTop = new THREE.Mesh(new THREE.BoxGeometry(4.0, 0.1, 1.0), counterMat);
+    counterTop.position.set(0.5, 0.9, -2.3);
+    counterTop.castShadow = true;
+    counterTop.receiveShadow = true;
+    counterTop.userData.isEnvironment = true;
+    scene.add(counterTop);
+    addLabel(counterTop, 'Counter', 0.2);
+
+    const baseMat = new THREE.MeshStandardMaterial({ color: 0xb08b5e, roughness: 0.8, flatShading: true });
+    const base1 = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 0.8), baseMat);
+    base1.position.set(-1.2, 0.4, -2.3);
+    base1.castShadow = true;
+    base1.receiveShadow = true;
+    scene.add(base1);
+    const base2 = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 0.8), baseMat);
+    base2.position.set(0.5, 0.4, -2.3);
+    base2.castShadow = true;
+    base2.receiveShadow = true;
+    scene.add(base2);
+    const base3 = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 0.8), baseMat);
+    base3.position.set(2.2, 0.4, -2.3);
+    base3.castShadow = true;
+    base3.receiveShadow = true;
+    scene.add(base3);
+
+    const sideCounter = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.1, 1.8), counterMat);
+    sideCounter.position.set(-2.1, 0.9, -1.2);
+    sideCounter.castShadow = true;
+    sideCounter.receiveShadow = true;
+    scene.add(sideCounter);
+    const sideBase = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.8, 1.6), baseMat);
+    sideBase.position.set(-2.1, 0.4, -1.2);
+    sideBase.castShadow = true;
+    sideBase.receiveShadow = true;
+    scene.add(sideBase);
+
+    // --- Stove ---
+    const stoveBase = createBox(0.8, 0.1, 0.8, 0x333333, { x: 1.0, y: 0.95, z: -2.3 });
+    stoveBase.userData.isEnvironment = true;
+    scene.add(stoveBase);
+    addLabel(stoveBase, 'Stove', 0.3);
+    const burnerMat = new THREE.MeshStandardMaterial({ color: 0x111111, emissive: 0x331100 });
+    for (let i = 0; i < 4; i++) {
+      const burner = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.02, 8), burnerMat);
+      burner.position.set(1.0 + (i % 2 === 0 ? -0.2 : 0.2), 1.02, -2.3 + (i < 2 ? -0.2 : 0.2));
+      burner.castShadow = true;
+      burner.userData.isEnvironment = true;
+      burner.userData.isPickable = false;
+      scene.add(burner);
+    }
+
+    // --- Sink ---
+    const sinkMat = new THREE.MeshStandardMaterial({ color: 0xaaaaaa, metalness: 0.6, roughness: 0.3 });
+    const sinkBasin = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.15, 0.7), sinkMat);
+    sinkBasin.position.set(-0.5, 0.85, -2.3);
+    sinkBasin.castShadow = true;
+    sinkBasin.receiveShadow = true;
+    sinkBasin.userData.isEnvironment = true;
+    scene.add(sinkBasin);
+    addLabel(sinkBasin, 'Sink', 0.3);
+    const faucetGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.4, 6);
+    const faucetMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.8 });
+    const faucet = new THREE.Mesh(faucetGeo, faucetMat);
+    faucet.position.set(-0.5, 1.15, -2.1);
+    faucet.rotation.x = 0.3;
+    faucet.castShadow = true;
+    faucet.userData.isEnvironment = true;
+    faucet.userData.isPickable = false;
+    scene.add(faucet);
+
+    // --- Chair ---
+    function createChair(posX, posZ, rotY = 0) {
+      const chairGroup = new THREE.Group();
+      const seatMat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.7, flatShading: true });
+      const legMat = new THREE.MeshStandardMaterial({ color: 0x5a3e1a, roughness: 0.8, flatShading: true });
+
+      const seat = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.08, 0.7), seatMat);
+      seat.position.y = 0.45;
+      seat.castShadow = true;
+      seat.receiveShadow = true;
+      chairGroup.add(seat);
+
+      const back = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.7, 0.08), seatMat);
+      back.position.set(0, 0.8, -0.3);
+      back.castShadow = true;
+      back.receiveShadow = true;
+      chairGroup.add(back);
+
+      const legPositions = [
+        [-0.3, 0.2, -0.3],
+        [0.3, 0.2, -0.3],
+        [-0.3, 0.2, 0.3],
+        [0.3, 0.2, 0.3]
+      ];
+      legPositions.forEach(pos => {
+        const leg = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.45, 0.1), legMat);
+        leg.position.set(pos[0], pos[1], pos[2]);
+        leg.castShadow = true;
+        leg.receiveShadow = true;
+        chairGroup.add(leg);
+      });
+
+      chairGroup.position.set(posX, 0, posZ);
+      chairGroup.rotation.y = rotY;
+      chairGroup.userData.isPickable = true;
+      chairGroup.userData.label = 'Chair';
+      chairGroup.traverse((c) => { if (c !== chairGroup) c.userData.isPickable = false; });
+      addLabel(chairGroup, 'Chair', 1.2);
+      return chairGroup;
+    }
+
+    scene.add(createChair(-1.0, 0.8, 0.2));
+    scene.add(createChair(0.8, 1.2, -0.3));
+    scene.add(createChair(1.8, 0.2, 0.5));
+
+    // --- Table ---
+    const tableGroup = new THREE.Group();
+    const tableMat = new THREE.MeshStandardMaterial({ color: 0xa67b5b, roughness: 0.7, flatShading: true });
+    const tableTop = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.1, 1.0), tableMat);
+    tableTop.position.set(0.5, 0.75, 0.5);
+    tableTop.castShadow = true;
+    tableTop.receiveShadow = true;
+    tableTop.userData.isEnvironment = true;
+    tableTop.userData.isPickable = false;
+    tableGroup.add(tableTop);
+
+    const tLegMat = new THREE.MeshStandardMaterial({ color: 0x7a5a3a, roughness: 0.8 });
+    const tLegPos = [[0.5-0.7, 0.35, 0.5-0.4], [0.5+0.7, 0.35, 0.5-0.4], [0.5-0.7, 0.35, 0.5+0.4], [0.5+0.7, 0.35, 0.5+0.4]];
+    tLegPos.forEach(pos => {
+      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.7, 0.1), tLegMat);
+      leg.position.set(pos[0], pos[1], pos[2]);
+      leg.castShadow = true;
+      leg.receiveShadow = true;
+      leg.userData.isEnvironment = true;
+      leg.userData.isPickable = false;
+      tableGroup.add(leg);
+    });
+    tableGroup.userData.isEnvironment = true;
+    tableGroup.userData.label = 'Table';
+    scene.add(tableGroup);
+    addLabel(tableGroup, 'Table', 1.0);
+
+    // --- Plates, Forks, Spoons ---
+    function createPlate(x, y, z) {
+      const plateGroup = new THREE.Group();
+      const plateMat = new THREE.MeshStandardMaterial({ color: 0xf0f0f0, roughness: 0.3, flatShading: true });
+      const plate = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.03, 8), plateMat);
+      plate.position.set(0, 0, 0);
+      plate.castShadow = true;
+      plate.receiveShadow = true;
+      plateGroup.add(plate);
+      const innerMat = new THREE.MeshStandardMaterial({ color: 0xe0e0e0, roughness: 0.4 });
+      const inner = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.01, 8), innerMat);
+      inner.position.set(0, 0.015, 0);
+      inner.castShadow = true;
+      inner.receiveShadow = true;
+      plateGroup.add(inner);
+      plateGroup.position.set(x, y, z);
+      plateGroup.userData.isPickable = true;
+      plateGroup.userData.label = 'Plate';
+      plate.userData.isPickable = false;
+      inner.userData.isPickable = false;
+      scene.add(plateGroup);
+      addLabel(plateGroup, 'Plate', 0.15);
+    }
+
+    function createFork(x, y, z, rotY = 0) {
+      const forkGroup = new THREE.Group();
+      const metalMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.7, roughness: 0.3 });
+      const handle = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.01, 0.2), metalMat);
+      handle.position.set(0, 0, 0);
+      handle.castShadow = true;
+      handle.receiveShadow = true;
+      forkGroup.add(handle);
+      const head = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.01, 0.06), metalMat);
+      head.position.set(0, 0, 0.12);
+      head.castShadow = true;
+      head.receiveShadow = true;
+      forkGroup.add(head);
+      for (let i = -1; i <= 1; i++) {
+        const tine = new THREE.Mesh(new THREE.BoxGeometry(0.015, 0.01, 0.04), metalMat);
+        tine.position.set(i * 0.02, 0, 0.16);
+        tine.castShadow = true;
+        tine.receiveShadow = true;
+        forkGroup.add(tine);
+      }
+      forkGroup.position.set(x, y, z);
+      forkGroup.rotation.y = rotY;
+      forkGroup.userData.isPickable = true;
+      forkGroup.userData.label = 'Fork';
+      forkGroup.traverse((c) => { if (c !== forkGroup) c.userData.isPickable = false; });
+      scene.add(forkGroup);
+      addLabel(forkGroup, 'Fork', 0.1);
+    }
+
+    function createSpoon(x, y, z, rotY = 0) {
+      const spoonGroup = new THREE.Group();
+      const metalMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.7, roughness: 0.3 });
+      const handle = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.01, 0.2), metalMat);
+      handle.position.set(0, 0, 0);
+      handle.castShadow = true;
+      handle.receiveShadow = true;
+      spoonGroup.add(handle);
+      const bowlGeo = new THREE.SphereGeometry(0.05, 6, 4);
+      const bowl = new THREE.Mesh(bowlGeo, metalMat);
+      bowl.scale.set(1, 0.2, 1.2);
+      bowl.position.set(0, 0.01, 0.12);
+      bowl.castShadow = true;
+      bowl.receiveShadow = true;
+      spoonGroup.add(bowl);
+      spoonGroup.position.set(x, y, z);
+      spoonGroup.rotation.y = rotY;
+      spoonGroup.userData.isPickable = true;
+      spoonGroup.userData.label = 'Spoon';
+      spoonGroup.traverse((c) => { if (c !== spoonGroup) c.userData.isPickable = false; });
+      scene.add(spoonGroup);
+      addLabel(spoonGroup, 'Spoon', 0.1);
+    }
+
+    createPlate(0.5, 0.81, 0.5);
+    createFork(0.4, 0.82, 0.45, 0.5);
+    createSpoon(0.6, 0.82, 0.55, -0.3);
+    createPlate(0.8, 0.81, 0.3);
+    createFork(0.75, 0.82, 0.25, 0.2);
+
+    createPlate(-0.5, 0.96, -2.3);
+    createSpoon(-0.3, 0.96, -2.3);
+    createFork(0.2, 0.96, -2.3);
+
+    // Mugs
+    const mugMat = new THREE.MeshStandardMaterial({ color: 0x6b8e23, roughness: 0.5 });
+    const mug1 = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.15, 6), mugMat);
+    mug1.position.set(-1.0, 0.98, -2.1);
+    mug1.castShadow = true;
+    mug1.receiveShadow = true;
+    mug1.userData.isPickable = true;
+    mug1.userData.label = 'Mug';
+    scene.add(mug1);
+    addLabel(mug1, 'Mug', 0.2);
+    const mug2 = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.15, 6), new THREE.MeshStandardMaterial({ color: 0xb22222, roughness: 0.5 }));
+    mug2.position.set(1.8, 0.98, -2.4);
+    mug2.castShadow = true;
+    mug2.receiveShadow = true;
+    mug2.userData.isPickable = true;
+    mug2.userData.label = 'Mug';
+    scene.add(mug2);
+    addLabel(mug2, 'Mug', 0.2);
+
+    // ============================================================
+    // --- Room 2: Everyday / Fun / Unexpected Memory Palace ---
+    // ============================================================
+    const animatedObjects = [];
+
+    function addRoomEnvironment(root) {
+      root.traverse((c) => {
+        c.userData.isEnvironment = true;
+        c.userData.isPickable = false;
+      });
+      scene.add(root);
+      return root;
+    }
+
+    function addRoomPickable(root) {
+      root.userData.isPickable = true;
+      root.traverse((c) => { if (c !== root) c.userData.isPickable = false; });
+      scene.add(root);
+      return root;
+    }
+
+    function addRoomSign(text, sub, pos) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512;
+      canvas.height = 160;
+      const c = canvas.getContext('2d');
+      c.fillStyle = 'rgba(20, 20, 30, 0.72)';
+      c.fillRect(0, 0, 512, 160);
+      c.strokeStyle = '#ffd166';
+      c.lineWidth = 6;
+      c.strokeRect(6, 6, 500, 148);
+      c.fillStyle = '#ffffff';
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
+      c.font = 'bold 60px Arial';
+      c.fillText(text, 256, 62);
+      c.fillStyle = '#ffd166';
+      c.font = 'bold 42px "Noto Sans Devanagari", "Mangal", Arial';
+      c.fillText(sub, 256, 124);
+      const texture = new THREE.CanvasTexture(canvas);
+      const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true }));
+      sprite.scale.set(1.15, 0.36, 1);
+      sprite.position.copy(pos);
+      sprite.raycast = function() {};
+      scene.add(sprite);
+    }
+
+    const room2CenterX = 6.3;
+    const room2Floor = new THREE.Mesh(
+      new THREE.PlaneGeometry(6.8, 6.8),
+      new THREE.MeshStandardMaterial({ color: 0xa9c1cc, roughness: 0.85 })
+    );
+    room2Floor.rotation.x = -Math.PI / 2;
+    room2Floor.position.set(room2CenterX, 0.002, 0);
+    room2Floor.receiveShadow = true;
+    room2Floor.userData.isEnvironment = true;
+    scene.add(room2Floor);
+
+    const room2Grid = new THREE.GridHelper(6.8, 14, 0x7b8f99, 0x7b8f99);
+    room2Grid.position.set(room2CenterX, 0.012, 0);
+    scene.add(room2Grid);
+
+    const room2BackWall = new THREE.Mesh(new THREE.BoxGeometry(6.8, 3, 0.2), wallMat);
+    room2BackWall.position.set(room2CenterX, 1.5, -3.4);
+    room2BackWall.receiveShadow = true;
+    room2BackWall.castShadow = true;
+    room2BackWall.userData.isEnvironment = true;
+    scene.add(room2BackWall);
+
+    const room2FrontWall = new THREE.Mesh(new THREE.BoxGeometry(6.8, 3, 0.2), wallMat);
+    room2FrontWall.position.set(room2CenterX, 1.5, 3.4);
+    room2FrontWall.receiveShadow = true;
+    room2FrontWall.castShadow = true;
+    room2FrontWall.userData.isEnvironment = true;
+    scene.add(room2FrontWall);
+
+    const room2RightWall = new THREE.Mesh(new THREE.BoxGeometry(0.2, 3, 6.8), wallMat);
+    room2RightWall.position.set(9.7, 1.5, 0);
+    room2RightWall.receiveShadow = true;
+    room2RightWall.castShadow = true;
+    room2RightWall.userData.isEnvironment = true;
+    scene.add(room2RightWall);
+
+    addRoomSign('Room 2 →', 'दूसरा कमरा', new THREE.Vector3(2.55, 2.75, 1.5));
+
+    // Rug
+    const rug = createBox(4.6, 0.02, 3.6, 0xb56576, { x: 6.3, y: 0.022, z: 0.3 });
+    addRoomEnvironment(rug);
+    addLabel(rug, 'Rug', 0.18);
+
+    // Sofa
+    const sofa = new THREE.Group();
+    const sofaMat = new THREE.MeshStandardMaterial({ color: 0x496d89, roughness: 0.85, flatShading: true });
+    const cushionMat = new THREE.MeshStandardMaterial({ color: 0x6c8ea4, roughness: 0.9, flatShading: true });
+    const sofaSeat = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.45, 0.9), sofaMat);
+    sofaSeat.position.set(0, 0.42, 0);
+    const sofaBack = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.9, 0.22), sofaMat);
+    sofaBack.position.set(0, 0.9, -0.34);
+    const sofaArmL = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.65, 0.9), sofaMat);
+    sofaArmL.position.set(-1.1, 0.62, 0);
+    const sofaArmR = sofaArmL.clone();
+    sofaArmR.position.x = 1.1;
+    const cushionA = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.16, 0.78), cushionMat);
+    cushionA.position.set(-0.5, 0.7, 0.02);
+    const cushionB = cushionA.clone();
+    cushionB.position.x = 0.5;
+    [sofaSeat, sofaBack, sofaArmL, sofaArmR, cushionA, cushionB].forEach((m) => {
+      m.castShadow = true;
+      m.receiveShadow = true;
+      sofa.add(m);
+    });
+    sofa.position.set(6.2, 0, -2.5);
+    addRoomEnvironment(sofa);
+    addLabel(sofa, 'Sofa', 1.65);
+
+    // TV on a stand
+    const tv = new THREE.Group();
+    const tvStand = createBox(0.9, 0.5, 0.5, 0x2f2f2f, { x: 0, y: 0.25, z: 0 });
+    const tvScreen = createBox(0.12, 0.95, 1.55, 0x111827, { x: 0, y: 1.1, z: 0 });
+    const tvGlow = new THREE.Mesh(
+      new THREE.PlaneGeometry(1.4, 0.82),
+      new THREE.MeshBasicMaterial({ color: 0x3d8bff, transparent: true, opacity: 0.55 })
+    );
+    tvGlow.rotation.y = -Math.PI / 2;
+    tvGlow.position.set(-0.07, 1.1, 0);
+    tv.add(tvStand, tvScreen, tvGlow);
+    tv.position.set(9.25, 0, 1.2);
+    addRoomEnvironment(tv);
+    addLabel(tv, 'TV', 1.9);
+    animatedObjects.push((t) => {
+      tvGlow.material.opacity = 0.45 + Math.sin(t * 2.1) * 0.12;
+    });
+
+    // Bookshelf
+    const shelf = new THREE.Group();
+    const shelfWood = new THREE.MeshStandardMaterial({ color: 0x6b4f3a, roughness: 0.8, flatShading: true });
+    const shelfBackPanel = new THREE.Mesh(new THREE.BoxGeometry(0.06, 2.2, 1.9), shelfWood);
+    shelfBackPanel.position.set(0.22, 1.1, 0);
+    shelf.add(shelfBackPanel);
+    [-0.94, 0.94].forEach((z) => {
+      const side = new THREE.Mesh(new THREE.BoxGeometry(0.42, 2.2, 0.08), shelfWood);
+      side.position.set(0, 1.1, z);
+      shelf.add(side);
+    });
+    const bookColors = [0xc0392b, 0x2980b9, 0x27ae60, 0xf39c12, 0x8e44ad, 0x16a085, 0xd35400];
+    [0.15, 0.55, 0.95, 1.35, 1.75].forEach((y, shelfIndex) => {
+      const plank = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.06, 1.88), shelfWood);
+      plank.position.set(0, y, 0);
+      shelf.add(plank);
+      for (let i = 0; i < 7; i++) {
+        const h = 0.24 + (i % 3) * 0.04;
+        const bookMesh = createBox(
+          0.28, h, 0.12,
+          bookColors[(i + shelfIndex) % bookColors.length],
+          { x: -0.02, y: y + 0.04 + h / 2, z: -0.72 + i * 0.24 }
+        );
+        shelf.add(bookMesh);
+      }
+    });
+    shelf.traverse((m) => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; } });
+    shelf.position.set(9.38, 0, -1.9);
+    addRoomEnvironment(shelf);
+    addLabel(shelf, 'Bookshelf', 2.45);
+
+    // Clock
+    const clockGroup = new THREE.Group();
+    const clockFace = createCylinder(0.3, 0.3, 0.08, 24, 0xffffff, { x: 0, y: 0, z: 0 }, { x: Math.PI / 2, y: 0, z: 0 });
+    const clockRim = new THREE.Mesh(
+      new THREE.TorusGeometry(0.3, 0.035, 8, 24),
+      new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.6 })
+    );
+    clockRim.position.z = 0.045;
+    const handMat = new THREE.MeshBasicMaterial({ color: 0x222222 });
+    const hourHand = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.16, 0.02), handMat);
+    hourHand.position.set(0, 0.07, 0.06);
+    hourHand.rotation.z = -0.5;
+    const minuteHand = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.23, 0.02), handMat);
+    minuteHand.position.set(0, 0.1, 0.065);
+    minuteHand.rotation.z = 1.1;
+    clockGroup.add(clockFace, clockRim, hourHand, minuteHand);
+    clockGroup.position.set(7.2, 2.15, -3.25);
+    addRoomEnvironment(clockGroup);
+    addLabel(clockGroup, 'Clock', 0.5);
+
+    // Window
+    const windowGroup = new THREE.Group();
+    const glass = new THREE.Mesh(
+      new THREE.PlaneGeometry(1.5, 1.05),
+      new THREE.MeshBasicMaterial({ color: 0x9fd8ff, transparent: true, opacity: 0.85 })
+    );
+    windowGroup.add(glass);
+    [[1.62, 0.09, 0, 0.57], [1.62, 0.09, 0, -0.57], [0.09, 1.14, -0.78, 0], [0.09, 1.14, 0.78, 0], [0.07, 1.05, 0, 0], [1.5, 0.07, 0, 0]].forEach((b) => {
+      const bar = createBox(b[0], b[1], 0.07, 0x6b4f3a, { x: b[2], y: b[3], z: 0.03 });
+      windowGroup.add(bar);
+    });
+    windowGroup.position.set(4.4, 1.85, -3.28);
+    addRoomEnvironment(windowGroup);
+    addLabel(windowGroup, 'Window', 0.95);
+
+    // Floor lamp
+    const floorLamp = new THREE.Group();
+    floorLamp.add(createCylinder(0.3, 0.34, 0.08, 8, 0x333333, { x: 0, y: 0.04, z: 0 }));
+    floorLamp.add(createCylinder(0.035, 0.035, 1.45, 6, 0x555555, { x: 0, y: 0.78, z: 0 }));
+    const shade = createCylinder(0.38, 0.34, 0.35, 10, 0xffd166, { x: 0, y: 1.62, z: 0 });
+    floorLamp.add(shade);
+    const lampLight = new THREE.PointLight(0xffcc88, 0.55, 4.5);
+    lampLight.position.set(0, 1.45, 0);
+    floorLamp.add(lampLight);
+    floorLamp.position.set(3.7, 0, 2.55);
+    addRoomEnvironment(floorLamp);
+    addLabel(floorLamp, 'Lamp', 2.0);
+
+    // Coffee table
+    const coffeeTable = new THREE.Group();
+    coffeeTable.add(createBox(1.5, 0.08, 0.9, 0xa67b5b, { x: 0, y: 0.52, z: 0 }));
+    [[-0.6, -0.34], [0.6, -0.34], [-0.6, 0.34], [0.6, 0.34]].forEach((p) => {
+      coffeeTable.add(createBox(0.08, 0.5, 0.08, 0x7a5a3a, { x: p[0], y: 0.25, z: p[1] }));
+    });
+    coffeeTable.position.set(6.3, 0, 0.6);
+    addRoomEnvironment(coffeeTable);
+    addLabel(coffeeTable, 'Table', 0.72);
+
+    // Plant
+    const plant = new THREE.Group();
+    plant.add(createCylinder(0.22, 0.28, 0.35, 8, 0xb5651d, { x: 0, y: 0.18, z: 0 }));
+    plant.add(createCylinder(0.2, 0.2, 0.03, 8, 0x3d2b1f, { x: 0, y: 0.36, z: 0 }));
+    plant.add(createCylinder(0.02, 0.02, 0.6, 5, 0x2f6b3a, { x: 0, y: 0.66, z: 0 }));
+    [[0, 0.85, 0], [0.16, 0.78, 0.05], [-0.15, 0.74, -0.04], [0.08, 0.95, -0.08], [-0.09, 0.92, 0.08]].forEach((p) => {
+      plant.add(createSphere(0.15, 0x3fa34d, { x: p[0], y: p[1], z: p[2] }, { x: 1.1, y: 0.65, z: 0.8 }));
+    });
+    plant.position.set(9.1, 0, 0.1);
+    addRoomPickable(plant);
+    addLabel(plant, 'Plant', 1.25);
+
+    // Guitar
+    const guitar = new THREE.Group();
+    const guitarBody = createSphere(0.32, 0xb5651d, { x: 0, y: 0.45, z: 0 }, { x: 1, y: 1.15, z: 0.22 });
+    const guitarNeck = createBox(0.1, 0.85, 0.08, 0x7a4a1e, { x: 0, y: 1.1, z: 0 });
+    const guitarHead = createBox(0.18, 0.25, 0.09, 0x4a2c12, { x: 0, y: 1.6, z: 0 });
+    const soundHole = createCylinder(0.08, 0.08, 0.03, 12, 0x2b1b12, { x: 0, y: 0.5, z: 0 }, { x: Math.PI / 2, y: 0, z: 0 });
+    guitar.add(guitarBody, guitarNeck, guitarHead, soundHole);
+    guitar.position.set(4.1, 0, -2.25);
+    guitar.rotation.z = 0.18;
+    guitar.rotation.y = 0.2;
+    addRoomPickable(guitar);
+    addLabel(guitar, 'Guitar', 1.85);
+
+    // Balloon
+    const balloon = new THREE.Group();
+    const balloonBody = createSphere(0.22, 0xe63946, { x: 0, y: 0, z: 0 }, { x: 0.95, y: 1.15, z: 0.95 });
+    const balloonKnot = createSphere(0.04, 0xa4161f, { x: 0, y: -0.25, z: 0 });
+    const balloonString = createCylinder(0.01, 0.01, 0.6, 4, 0xdddddd, { x: 0, y: -0.56, z: 0 });
+    balloon.add(balloonBody, balloonKnot, balloonString);
+    balloon.position.set(5.7, 2.35, 1.5);
+    addRoomEnvironment(balloon);
+    addLabel(balloon, 'Balloon', 0.42);
+    animatedObjects.push((t) => {
+      balloon.position.y = 2.35 + Math.sin(t * 1.4) * 0.07;
+      balloon.rotation.y = Math.sin(t * 0.6) * 0.4;
+    });
+
+    // Teddy bear
+    const teddy = new THREE.Group();
+    const bearBrown = 0x8b5a2b;
+    teddy.add(createSphere(0.28, bearBrown, { x: 0, y: 0.4, z: 0 }, { x: 1, y: 1.15, z: 0.9 }));
+    teddy.add(createSphere(0.22, bearBrown, { x: 0, y: 0.85, z: 0 }));
+    teddy.add(createSphere(0.11, 0xd2a679, { x: 0, y: 0.82, z: 0.18 }));
+    [-0.15, 0.15].forEach((x) => {
+      teddy.add(createSphere(0.07, bearBrown, { x, y: 1.02, z: 0 }));
+      teddy.add(createSphere(0.1, bearBrown, { x: x * 1.85, y: 0.45, z: 0.05 }, { x: 0.7, y: 1.3, z: 0.7 }));
+      teddy.add(createSphere(0.12, bearBrown, { x: x, y: 0.18, z: 0.08 }, { x: 0.9, y: 1.1, z: 0.9 }));
+    });
+    [-0.08, 0.08].forEach((x) => {
+      teddy.add(createSphere(0.025, 0x111111, { x, y: 0.9, z: 0.2 }));
+    });
+    teddy.position.set(5.0, 0, 1.0);
+    teddy.rotation.y = 0.5;
+    addRoomPickable(teddy);
+    addLabel(teddy, 'Teddy Bear', 1.25);
+
+    // Robot
+    const robot = new THREE.Group();
+    const robotMat = new THREE.MeshStandardMaterial({ color: 0x8fa3b0, metalness: 0.5, roughness: 0.4, flatShading: true });
+    const robotBody = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.6, 0.32), robotMat);
+    robotBody.position.y = 0.6;
+    const robotHead = new THREE.Group();
+    robotHead.position.y = 1.08;
+    const robotHeadMesh = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.35, 0.3), robotMat);
+    robotHead.add(robotHeadMesh);
+    [-0.09, 0.09].forEach((x) => {
+      const eye = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.02), new THREE.MeshBasicMaterial({ color: 0x53e0ff }));
+      eye.position.set(x, 0.04, 0.16);
+      robotHead.add(eye);
+    });
+    robot.add(robotBody, robotHead);
+    [-0.35, 0.35].forEach((x) => {
+      const arm = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.5, 0.12), robotMat);
+      arm.position.set(x, 0.6, 0);
+      robot.add(arm);
+      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.3, 0.14), robotMat);
+      leg.position.set(x * 0.4, 0.15, 0);
+      robot.add(leg);
+    });
+    const antenna = createCylinder(0.02, 0.02, 0.2, 4, 0x555555, { x: 0, y: 1.34, z: 0 });
+    const antennaBall = createSphere(0.05, 0xe63946, { x: 0, y: 1.46, z: 0 });
+    robot.add(antenna, antennaBall);
+    robot.traverse((m) => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; } });
+    robot.position.set(7.1, 0, 1.9);
+    robot.rotation.y = -0.3;
+    addRoomPickable(robot);
+    addLabel(robot, 'Robot', 1.65);
+    animatedObjects.push((t) => {
+      robotHead.rotation.y = Math.sin(t * 1.2) * 0.4;
+    });
+
+    // Skateboard
+    const skateboard = new THREE.Group();
+    skateboard.add(createBox(0.9, 0.06, 0.26, 0x3d405b, { x: 0, y: 0.11, z: 0 }));
+    skateboard.add(createBox(0.86, 0.01, 0.23, 0x222222, { x: 0, y: 0.145, z: 0 }));
+    [[-0.28, -0.1], [0.28, -0.1], [-0.28, 0.1], [0.28, 0.1]].forEach((p) => {
+      const wheel = createCylinder(0.06, 0.06, 0.05, 8, 0x222222, { x: p[0], y: 0.05, z: p[1] }, { x: Math.PI / 2, y: 0, z: 0 });
+      skateboard.add(wheel);
+    });
+    skateboard.position.set(8.1, 0, -0.3);
+    skateboard.rotation.y = 0.4;
+    addRoomPickable(skateboard);
+    addLabel(skateboard, 'Skateboard', 0.35);
+
+    // Pizza on the coffee table
+    const pizza = new THREE.Group();
+    pizza.add(createCylinder(0.33, 0.33, 0.05, 12, 0xd9a441, { x: 0, y: 0, z: 0 }));
+    pizza.add(createCylinder(0.29, 0.29, 0.02, 12, 0xc0392b, { x: 0, y: 0.035, z: 0 }));
+    pizza.add(createCylinder(0.27, 0.27, 0.015, 12, 0xf2c14e, { x: 0, y: 0.052, z: 0 }));
+    [[0.1, 0.05], [-0.11, 0.06], [0.02, -0.12], [0.15, -0.06], [-0.08, -0.1], [-0.16, -0.02]].forEach((p) => {
+      pizza.add(createCylinder(0.035, 0.035, 0.02, 8, 0xa4161f, { x: p[0], y: 0.06, z: p[1] }));
+    });
+    pizza.position.set(6.2, 0.59, 0.6);
+    addRoomPickable(pizza);
+    addLabel(pizza, 'Pizza', 0.25);
+
+    // Book on the coffee table
+    const book = new THREE.Group();
+    book.add(createBox(0.34, 0.06, 0.46, 0x8e2b2b, { x: 0, y: 0, z: 0 }));
+    book.add(createBox(0.3, 0.04, 0.42, 0xf5f0e1, { x: 0, y: 0.02, z: 0 }));
+    book.add(createBox(0.34, 0.012, 0.46, 0x8e2b2b, { x: 0, y: 0.045, z: 0 }));
+    book.position.set(6.9, 0.59, 0.65);
+    book.rotation.y = 0.3;
+    addRoomPickable(book);
+    addLabel(book, 'Book', 0.2);
+
+    // Rubber duck
+    const duck = new THREE.Group();
+    const duckYellow = 0xffd43b;
+    duck.add(createSphere(0.16, duckYellow, { x: 0, y: 0.12, z: 0 }, { x: 1.3, y: 1, z: 0.9 }));
+    duck.add(createSphere(0.1, duckYellow, { x: 0, y: 0.29, z: 0.08 }));
+    duck.add(createBox(0.1, 0.04, 0.09, 0xe8590c, { x: 0, y: 0.27, z: 0.19 }));
+    [-0.04, 0.04].forEach((x) => {
+      duck.add(createSphere(0.018, 0x111111, { x, y: 0.32, z: 0.14 }));
+    });
+    duck.position.set(4.5, 0.06, 1.5);
+    duck.rotation.y = -0.4;
+    addRoomPickable(duck);
+    addLabel(duck, 'Rubber Duck', 0.55);
+
+    // Wild unexpected: UFO
+    const ufo = new THREE.Group();
+    const ufoMat = new THREE.MeshStandardMaterial({ color: 0x9aa5b1, metalness: 0.45, roughness: 0.35, flatShading: true });
+    const saucer = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.75, 0.12, 16), ufoMat);
+    const dome = new THREE.Mesh(
+      new THREE.SphereGeometry(0.27, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2),
+      new THREE.MeshStandardMaterial({ color: 0x66e0ff, metalness: 0.2, roughness: 0.1, transparent: true, opacity: 0.85 })
+    );
+    dome.position.y = 0.06;
+    ufo.add(saucer, dome);
+    for (let i = 0; i < 8; i++) {
+      const light = new THREE.Mesh(new THREE.SphereGeometry(0.035, 6, 4), new THREE.MeshBasicMaterial({ color: 0xffdd55 }));
+      const angle = (i / 8) * Math.PI * 2;
+      light.position.set(Math.cos(angle) * 0.62, 0, Math.sin(angle) * 0.62);
+      ufo.add(light);
+    }
+    const ufoLight = new THREE.PointLight(0x77e0ff, 0.6, 4);
+    ufo.add(ufoLight);
+    ufo.traverse((m) => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; } });
+    ufo.position.set(8.1, 1.8, 2.2);
+    addRoomEnvironment(ufo);
+    addLabel(ufo, 'UFO', 0.55);
+    animatedObjects.push((t, dt) => {
+      ufo.position.y = 1.8 + Math.sin(t * 1.8) * 0.12;
+      ufo.rotation.y += dt * 1.4;
+    });
+
+    // Wild unexpected: Dinosaur
+    const dino = new THREE.Group();
+    const dinoMat = new THREE.MeshStandardMaterial({ color: 0x5b8c5a, roughness: 0.8, flatShading: true });
+    const dinoBody = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.6, 1.0), dinoMat);
+    dinoBody.position.y = 0.85;
+    dino.add(dinoBody);
+    const dinoNeck = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.5, 0.24), dinoMat);
+    dinoNeck.position.set(0, 1.12, 0.4);
+    dino.add(dinoNeck);
+    const dinoHead = new THREE.Group();
+    dinoHead.position.set(0, 1.38, 0.6);
+    const dinoSkull = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.38, 0.5), dinoMat);
+    const dinoSnout = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.2, 0.28), dinoMat);
+    dinoSnout.position.set(0, -0.05, 0.34);
+    dinoHead.add(dinoSkull, dinoSnout);
+    [-0.13, 0.13].forEach((x) => {
+      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.045, 8, 6), new THREE.MeshBasicMaterial({ color: 0xfff3b0 }));
+      eye.position.set(x, 0.08, 0.26);
+      const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.02, 6, 4), new THREE.MeshBasicMaterial({ color: 0x111111 }));
+      pupil.position.set(x, 0.08, 0.29);
+      dinoHead.add(eye, pupil);
+    });
+    dino.add(dinoHead);
+    const dinoTail = new THREE.Group();
+    dinoTail.position.set(0, 0.9, -0.5);
+    const tailMesh = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.9, 6), dinoMat);
+    tailMesh.rotation.x = -Math.PI / 2;
+    tailMesh.position.z = -0.35;
+    dinoTail.add(tailMesh);
+    dino.add(dinoTail);
+    [[-0.22, -0.15], [0.22, -0.15], [-0.33, 0.35], [0.33, 0.35]].forEach((p, i) => {
+      const limb = new THREE.Mesh(new THREE.BoxGeometry(0.16, i < 2 ? 0.55 : 0.32, 0.16), dinoMat);
+      limb.position.set(p[0], i < 2 ? 0.28 : 1.02, p[1]);
+      dino.add(limb);
+    });
+    dino.traverse((m) => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; } });
+    dino.position.set(3.9, 0, -0.9);
+    dino.rotation.y = 0.25;
+    addRoomEnvironment(dino);
+    addLabel(dino, 'Dinosaur', 2.05);
+    animatedObjects.push((t) => {
+      dinoHead.rotation.x = Math.sin(t * 2.2) * 0.08;
+      dinoTail.rotation.y = Math.sin(t * 2.8) * 0.25;
+    });
+
+    // Wild unexpected: Magic lamp on a pedestal
+    const pedestal = createCylinder(0.3, 0.36, 0.55, 8, 0x5f6b73, { x: 8.7, y: 0.275, z: 2.5 });
+    addRoomEnvironment(pedestal);
+    const magicLamp = new THREE.Group();
+    const lampMat = new THREE.MeshStandardMaterial({
+      color: 0xffc857, metalness: 0.55, roughness: 0.3, emissive: 0xff9f1c, emissiveIntensity: 0.45, flatShading: true
+    });
+    const lampBase = new THREE.Mesh(new THREE.SphereGeometry(0.2, 10, 6), lampMat);
+    lampBase.scale.set(1.2, 0.45, 0.8);
+    lampBase.position.y = 0.08;
+    const lampBody = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 6), lampMat);
+    lampBody.scale.set(1, 1.1, 0.9);
+    lampBody.position.y = 0.2;
+    const spout = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.32, 8), lampMat);
+    spout.rotation.z = -Math.PI / 2;
+    spout.position.set(0.28, 0.2, 0);
+    const lampHandle = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.03, 6, 12), lampMat);
+    lampHandle.position.set(-0.2, 0.2, 0);
+    magicLamp.add(lampBase, lampBody, spout, lampHandle);
+    magicLamp.position.set(8.7, 0.55, 2.5);
+    addRoomPickable(magicLamp);
+    addLabel(magicLamp, 'Magic Lamp', 0.55);
+    animatedObjects.push((t) => {
+      lampMat.emissiveIntensity = 0.45 + Math.sin(t * 3) * 0.25;
+    });
+
+    // Wild unexpected: Disco ball
+    const discoRig = new THREE.Group();
+    const discoBall = new THREE.Mesh(
+      new THREE.SphereGeometry(0.32, 18, 12),
+      new THREE.MeshStandardMaterial({
+        color: 0xe8f4ff, metalness: 0.4, roughness: 0.18,
+        emissive: 0x334455, emissiveIntensity: 0.35, flatShading: true
+      })
+    );
+    discoBall.position.set(6.3, 2.55, 0.4);
+    const discoLight = new THREE.PointLight(0xbbddff, 0.7, 4.5);
+    discoLight.position.set(6.3, 2.4, 0.4);
+    discoRig.add(discoBall, discoLight);
+    addRoomEnvironment(discoRig);
+    addLabel(discoRig, 'Disco Ball', 3.1);
+    animatedObjects.push((t, dt) => {
+      discoBall.rotation.y += dt * 0.9;
+      discoBall.rotation.x = 0.2;
+    });
+
+    // --- Controllers ---
+    const controllerModelFactory = new XRControllerModelFactory();
+
+    const controller0 = renderer.xr.getController(0);
+    const controller1 = renderer.xr.getController(1);
+    scene.add(controller0);
+    scene.add(controller1);
+
+    const grip0 = renderer.xr.getControllerGrip(0);
+    grip0.add(controllerModelFactory.createControllerModel(grip0));
+    scene.add(grip0);
+    const grip1 = renderer.xr.getControllerGrip(1);
+    grip1.add(controllerModelFactory.createControllerModel(grip1));
+    scene.add(grip1);
+
+    const rayGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, -1)]);
+    const rayMat = new THREE.LineBasicMaterial({ color: 0xffaa00 });
+    const ray0 = new THREE.Line(rayGeo, rayMat);
+    ray0.scale.z = 5;
+    controller0.add(ray0);
+    const ray1 = new THREE.Line(rayGeo, rayMat);
+    ray1.scale.z = 5;
+    controller1.add(ray1);
+
+    // --- Player Rig (dolly) ---
+    const playerRig = new THREE.Group();
+    playerRig.position.set(0, 0, 0);
+    scene.add(playerRig);
+
+    camera.position.set(0, 1.6, 0);
+    playerRig.add(camera);
+    playerRig.add(controller0);
+    playerRig.add(controller1);
+    playerRig.add(grip0);
+    playerRig.add(grip1);
+
+    playerRig.position.set(0, 0, 2.5);
+
+    // --- Pickable objects list ---
+    const pickableObjects = [];
+    const environmentObjects = new Set([
+      floor, gridHelper, backWall, leftWall, rightWallA, rightWallB, doorLintel,
+      room2Floor, room2BackWall, room2FrontWall, room2RightWall,
+      fridgeBody, handle, divider, handle2,
+      counterTop, base1, base2, base3, sideCounter, sideBase,
+      stoveBase, sinkBasin, faucet,
+      tableTop
+    ]);
+
+    environmentObjects.forEach(obj => {
+      obj.userData.isEnvironment = true;
+    });
+
+    scene.traverse((obj) => {
+      if (obj.isMesh || obj.isGroup) {
+        if (environmentObjects.has(obj)) return;
+        if (obj.userData.isEnvironment) return;
+        if (obj === camera || obj === controller0 || obj === controller1 ||
+            obj === grip0 || obj === grip1 || obj === playerRig) return;
+        if (obj.parent === controller0 || obj.parent === controller1) return;
+        if (obj.isLight) return;
+
+        const box = new THREE.Box3().setFromObject(obj);
+        const size = new THREE.Vector3();
+        box.getSize(size);
+        const volume = size.x * size.y * size.z;
+
+        // If an ancestor is already pickable, this part belongs to that unit
+        let ancestorPickable = false;
+        let p = obj.parent;
+        while (p) {
+          if (p.userData && p.userData.isPickable === true) { ancestorPickable = true; break; }
+          p = p.parent;
+        }
+        if (ancestorPickable) {
+          obj.userData.isPickable = false;
+          return;
+        }
+
+        if (obj.userData.isPickable !== true && volume < 0.05) {
+          obj.userData.isPickable = true;
+        }
+        if (obj.userData.isPickable === true && obj.isGroup) {
+          obj.children.forEach(child => {
+            if (child.isMesh) child.userData.isPickable = false;
+          });
+        }
+      }
+    });
+
+    scene.traverse((obj) => {
+      if (obj.userData.isPickable === true) {
+        let parent = obj.parent;
+        let isChildOfPickable = false;
+        while (parent) {
+          if (parent.userData.isPickable === true) {
+            isChildOfPickable = true;
+            break;
+          }
+          parent = parent.parent;
+        }
+        if (!isChildOfPickable) {
+          pickableObjects.push(obj);
+        }
+      }
+    });
+
+    // Record home transforms for tether return
+    pickableObjects.forEach((o) => {
+      o.userData.homePosition = o.position.clone();
+      o.userData.homeQuaternion = o.quaternion.clone();
+      o.userData.homeParent = o.parent || scene;
+    });
+
+    // --- Controller state ---
+    const controllerState = [
+      { object: null },
+      { object: null }
+    ];
+    const returningObjects = [];
+
+    const raycaster = new THREE.Raycaster();
+
+    // --- Select handlers ---
+    const AUDIO_CLIPS = {
+      Refrigerator: 'audio/refrigerator.mp3',
+      Counter: 'audio/counter.mp3',
+      Stove: 'audio/stove.mp3',
+      Sink: 'audio/sink.mp3',
+      Chair: 'audio/chair.mp3',
+      Table: 'audio/table.mp3',
+      Plate: 'audio/plate.mp3',
+      Fork: 'audio/fork.mp3',
+      Spoon: 'audio/spoon.mp3',
+      Mug: 'audio/mug.mp3',
+      Sofa: 'audio/sofa.mp3',
+      TV: 'audio/tv.mp3',
+      Lamp: 'audio/lamp.mp3',
+      Clock: 'audio/clock.mp3',
+      Book: 'audio/book.mp3',
+      Plant: 'audio/plant.mp3',
+      Rug: 'audio/rug.mp3',
+      Window: 'audio/window.mp3',
+      Bookshelf: 'audio/bookshelf.mp3',
+      Guitar: 'audio/guitar.mp3',
+      Balloon: 'audio/balloon.mp3',
+      'Teddy Bear': 'audio/teddy_bear.mp3',
+      Robot: 'audio/robot.mp3',
+      Skateboard: 'audio/skateboard.mp3',
+      Pizza: 'audio/pizza.mp3',
+      'Rubber Duck': 'audio/rubber_duck.mp3',
+      UFO: 'audio/ufo.mp3',
+      Dinosaur: 'audio/dinosaur.mp3',
+      'Magic Lamp': 'audio/magic_lamp.mp3',
+      'Disco Ball': 'audio/disco_ball.mp3'
+    };
+    const audioBuffers = {};
+    let audioCtx = null;
+    let audioLoadPromise = null;
+
+    function getAudioContext() {
+      if (!audioCtx) {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        if (Ctx) audioCtx = new Ctx();
+      }
+      return audioCtx;
+    }
+
+    function loadAudioClips() {
+      if (audioLoadPromise) return audioLoadPromise;
+      const ctx = getAudioContext();
+      if (!ctx) return Promise.resolve();
+      audioLoadPromise = Promise.all(Object.keys(AUDIO_CLIPS).map(async (label) => {
+        try {
+          const res = await fetch(AUDIO_CLIPS[label]);
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const data = await res.arrayBuffer();
+          audioBuffers[label] = await ctx.decodeAudioData(data);
+        } catch (e) {
+          console.error('AUDIO LOAD ERR', label, e);
+        }
+      }));
+      return audioLoadPromise;
+    }
+
+    function unlockAudio() {
+      const ctx = getAudioContext();
+      if (!ctx) return;
+      if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+      loadAudioClips();
+    }
+
+    window.addEventListener('pointerdown', unlockAudio, { passive: true });
+
+    function speakFallback(text) {
+      if (!('speechSynthesis' in window)) return false;
+      try {
+        window.speechSynthesis.resume();
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = 'hi-IN';
+        const voices = window.speechSynthesis.getVoices();
+        const v = voices.find((x) => x.lang && x.lang.toLowerCase().startsWith('hi'));
+        if (v) u.voice = v;
+        u.volume = 1;
+        u.rate = 1;
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(u);
+        return true;
+      } catch (err) {
+        console.error('SPEECH ERR', err);
+        return false;
+      }
+    }
+
+    async function speakHindi(label) {
+      if (!label) return;
+      const text = HINDI[label] || label;
+      const info = document.getElementById('info');
+      const ctx = getAudioContext();
+      if (ctx && ctx.state === 'suspended') {
+        try { await ctx.resume(); } catch (e) { console.error('RESUME ERR', e); }
+      }
+      if (info) info.textContent = 'Speaking: ' + text;
+
+      await loadAudioClips();
+      const buffer = audioBuffers[label];
+      if (buffer && ctx && ctx.state === 'running') {
+        try {
+          const src = ctx.createBufferSource();
+          src.buffer = buffer;
+          src.connect(ctx.destination);
+          src.start();
+          return;
+        } catch (e) { console.error('PLAY ERR', e); }
+      }
+      if (info) info.textContent = 'Speaking (fallback): ' + text;
+      speakFallback(text);
+    }
+
+    function onSelectStartPick(event) {
+      const controller = event.target;
+      const controllerIndex = controller === controller0 ? 0 : 1;
+
+      // Speak Hindi for any labeled object being pointed at
+      const tempMatrix0 = new THREE.Matrix4();
+      tempMatrix0.identity().extractRotation(controller.matrixWorld);
+      const rc = new THREE.Raycaster();
+      rc.ray.origin.setFromMatrixPosition(controller.matrixWorld);
+      rc.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix0);
+      const allHits = rc.intersectObjects(scene.children, true);
+      for (let i = 0; i < allHits.length; i++) {
+        let o = allHits[i].object;
+        let spoken = false;
+        while (o) {
+          if (o.userData && o.userData.hindi) {
+            speakHindi(o.userData.label || o.userData.hindi);
+            spoken = true;
+            break;
+          }
+          o = o.parent;
+        }
+        if (spoken) break;
+      }
+
+      if (controllerState[controllerIndex].object) return;
+
+      const tempMatrix = new THREE.Matrix4();
+      tempMatrix.identity().extractRotation(controller.matrixWorld);
+      raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
+      raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
+
+      const intersects = raycaster.intersectObjects(pickableObjects, true);
+
+      for (let i = 0; i < intersects.length; i++) {
+        let hitObj = intersects[i].object;
+        let pickableRoot = null;
+        while (hitObj) {
+          if (hitObj.userData.isPickable === true) {
+            pickableRoot = hitObj;
+            break;
+          }
+          hitObj = hitObj.parent;
+        }
+        if (pickableRoot) {
+          // cancel any in-flight return
+          const ri = returningObjects.indexOf(pickableRoot);
+          if (ri !== -1) returningObjects.splice(ri, 1);
+          controller.attach(pickableRoot);
+          pickableRoot.position.set(0, 0, -0.2);
+          pickableRoot.rotation.set(0, 0, 0);
+          controllerState[controllerIndex].object = pickableRoot;
+          break;
+        }
+      }
+    }
+
+    function onSelectEndDrop(event) {
+      const controller = event.target;
+      const controllerIndex = controller === controller0 ? 0 : 1;
+
+       if (controllerState[controllerIndex].object) {
+         const heldObj = controllerState[controllerIndex].object;
+         const worldPos = new THREE.Vector3();
+         heldObj.getWorldPosition(worldPos);
+         const worldQuat = new THREE.Quaternion();
+         heldObj.getWorldQuaternion(worldQuat);
+         controller.remove(heldObj);
+         scene.add(heldObj);
+         heldObj.position.copy(worldPos);
+         heldObj.quaternion.copy(worldQuat);
+         if (!heldObj.userData.homePosition) {
+           heldObj.userData.homePosition = worldPos.clone();
+           heldObj.userData.homeQuaternion = worldQuat.clone();
+         }
+         // tether: animate back to home
+         heldObj.userData.returnStart = heldObj.position.clone();
+         heldObj.userData.returnQuatStart = heldObj.quaternion.clone();
+         heldObj.userData.returnProgress = 0;
+         if (!returningObjects.includes(heldObj)) returningObjects.push(heldObj);
+         controllerState[controllerIndex].object = null;
+       }
+    }
+
+    controller0.addEventListener('selectstart', onSelectStartPick);
+    controller0.addEventListener('selectend', onSelectEndDrop);
+    controller1.addEventListener('selectstart', onSelectStartPick);
+    controller1.addEventListener('selectend', onSelectEndDrop);
+
+    // --- NEW: Left thumbstick from session ---
+    function getLeftThumbstickFromSession() {
+      const session = renderer.xr.getSession();
+      if (!session) return { x: 0, y: 0 };
+
+      for (const inputSource of session.inputSources) {
+        if (inputSource && inputSource.handedness === 'left' && inputSource.gamepad && inputSource.gamepad.axes) {
+          const axes = inputSource.gamepad.axes;
+          let x = 0;
+          let y = 0;
+
+          if (axes.length >= 4) {
+            const mag01 = Math.hypot(axes[0] || 0, axes[1] || 0);
+            const mag23 = Math.hypot(axes[2] || 0, axes[3] || 0);
+
+            if (mag23 >= mag01) {
+              x = axes[2];
+              y = axes[3];
+            } else {
+              x = axes[0];
+              y = axes[1];
+            }
+          } else if (axes.length >= 2) {
+            x = axes[0];
+            y = axes[1];
+          }
+
+          if (Math.abs(x) < 0.12) x = 0;
+          if (Math.abs(y) < 0.12) y = 0;
+
+          return { x, y };
+        }
+      }
+
+      return { x: 0, y: 0 };
+    }
+
+    function getRightThumbstickFromSession() {
+      const session = renderer.xr.getSession();
+      if (!session) return { x: 0, y: 0 };
+
+      for (const inputSource of session.inputSources) {
+        if (inputSource && inputSource.handedness === 'right' && inputSource.gamepad && inputSource.gamepad.axes) {
+          const axes = inputSource.gamepad.axes;
+          let x = 0;
+          let y = 0;
+
+          if (axes.length >= 4) {
+            const mag01 = Math.hypot(axes[0] || 0, axes[1] || 0);
+            const mag23 = Math.hypot(axes[2] || 0, axes[3] || 0);
+
+            if (mag23 >= mag01) {
+              x = axes[2];
+              y = axes[3];
+            } else {
+              x = axes[0];
+              y = axes[1];
+            }
+          } else if (axes.length >= 2) {
+            x = axes[0];
+            y = axes[1];
+          }
+
+          if (Math.abs(x) < 0.12) x = 0;
+          if (Math.abs(y) < 0.12) y = 0;
+
+          return { x, y };
+        }
+      }
+
+      return { x: 0, y: 0 };
+    }
+    const clock = new THREE.Clock();
+
+    renderer.setAnimationLoop(() => {
+      try {
+      const delta = clock.getDelta();
+      const elapsed = clock.elapsedTime;
+
+      animatedObjects.forEach((animate) => animate(elapsed, delta));
+
+      if (renderer.xr.isPresenting) {
+        const thumbstick = getLeftThumbstickFromSession();
+
+        if (thumbstick.x !== 0 || thumbstick.y !== 0) {
+          const xrCamera = renderer.xr.getCamera(camera);
+          const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(xrCamera.quaternion);
+          forward.y = 0;
+          forward.normalize();
+
+          const right = new THREE.Vector3(1, 0, 0).applyQuaternion(xrCamera.quaternion);
+          right.y = 0;
+          right.normalize();
+
+          const moveDirection = new THREE.Vector3();
+          moveDirection.addScaledVector(forward, -thumbstick.y);
+          moveDirection.addScaledVector(right, thumbstick.x);
+
+          if (moveDirection.lengthSq() > 0) {
+            moveDirection.normalize();
+            playerRig.position.addScaledVector(moveDirection, 1.5 * delta);
+          }
+        }
+
+        // Right thumbstick: turn view left/right (yaw)
+        const rightStick = getRightThumbstickFromSession();
+        if (rightStick.x !== 0) {
+          playerRig.rotation.y -= rightStick.x * 1.8 * delta;
+        }
+        playerRig.rotation.z = 0;
+      }
+
+       // Tether return animation
+       for (let i = returningObjects.length - 1; i >= 0; i--) {
+         const o = returningObjects[i];
+         if (!o || !o.userData || !o.userData.homePosition || !o.userData.returnStart || !o.userData.returnQuatStart) {
+           returningObjects.splice(i, 1);
+           continue;
+         }
+         o.userData.returnProgress = (o.userData.returnProgress || 0) + delta * 2.5;
+         const t = Math.min(1, o.userData.returnProgress);
+         const ease = 1 - Math.pow(1 - t, 3);
+         if (!o.userData.returnStart) o.userData.returnStart = o.position.clone();
+         o.position.lerpVectors(o.userData.returnStart, o.userData.homePosition, ease);
+         o.quaternion.copy(o.userData.returnQuatStart).slerp(o.userData.homeQuaternion, ease);
+         if (t >= 1) {
+           o.position.copy(o.userData.homePosition);
+           o.quaternion.copy(o.userData.homeQuaternion);
+           returningObjects.splice(i, 1);
+         }
+       }
+
+       renderer.render(scene, camera);
+      } catch (e) {
+        console.error('LOOP ERR', e);
+        const info = document.getElementById('info');
+        if (info) info.textContent = 'ERROR: ' + (e && e.message ? e.message : e);
+      }
+    });
+
+    // Handle window resize
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    console.log('Pickable objects:', pickableObjects.length);
+  </script>
+</body>
+</html>
