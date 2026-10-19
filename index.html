@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Low Poly Memory Palace – WebXR with Three.js</title>
+  <title>High-Poly Memory Palace – WebXR with Three.js</title>
   <style>
     body {
       margin: 0;
@@ -57,12 +57,25 @@
       display: none;
       z-index: 1000;
     }
+    #progress {
+      position: absolute;
+      top: 70px;
+      left: 20px;
+      color: white;
+      font-size: 13px;
+      background: rgba(0,0,0,0.55);
+      padding: 8px 14px;
+      border-radius: 20px;
+      z-index: 1000;
+      pointer-events: none;
+    }
   </style>
 </head>
 <body>
-  <div id="info">🍳 Kitchen + 🎈 Fun Room • Trigger to hear Hindi • Move with left joystick</div>
+  <div id="info">🏠 4-room memory palace • Trigger to hear Hindi • Move with left joystick</div>
   <button id="vr-button">Enter VR</button>
   <div id="loading">Entering VR…</div>
+  <div id="progress">Loading assets… 0%</div>
 
   <script type="importmap">
     {
@@ -77,6 +90,8 @@
     import * as THREE from 'three';
     import { VRButton } from 'three/addons/webxr/VRButton.js';
     import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFactory.js';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
     // --- Scene Setup ---
     const scene = new THREE.Scene();
@@ -91,7 +106,27 @@
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.xr.enabled = true;
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 0.65;
     document.body.appendChild(renderer.domElement);
+
+    const pmremGenerator = new THREE.PMREMGenerator(renderer);
+    const envTexture = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
+
+    const progressEl = document.getElementById('progress');
+    const loadingManager = new THREE.LoadingManager();
+    loadingManager.onProgress = (url, loaded, total) => {
+      if (progressEl) progressEl.textContent = 'Loading assets… ' + Math.round((loaded / total) * 100) + '%';
+    };
+    loadingManager.onLoad = () => {
+      if (progressEl) progressEl.style.display = 'none';
+    };
+    loadingManager.onError = (url) => {
+      console.error('ASSET LOAD ERR', url);
+      if (progressEl) progressEl.textContent = 'Some assets failed to load (see console)';
+    };
+    const gltfLoader = new GLTFLoader(loadingManager);
 
     // --- VR Button ---
     const vrButton = document.getElementById('vr-button');
@@ -118,22 +153,22 @@
     });
 
     // --- Lighting ---
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.28);
     scene.add(ambientLight);
 
-    const dirLight = new THREE.DirectionalLight(0xfff5e6, 1.2);
+    const dirLight = new THREE.DirectionalLight(0xfff5e6, 0.75);
     dirLight.position.set(2, 5, 3);
     dirLight.castShadow = true;
     dirLight.shadow.mapSize.width = 1024;
     dirLight.shadow.mapSize.height = 1024;
     scene.add(dirLight);
 
-    const fillLight = new THREE.PointLight(0xffeedd, 0.5);
+    const fillLight = new THREE.PointLight(0xffeedd, 0.2);
     fillLight.position.set(-2, 3, 2);
     scene.add(fillLight);
 
     // --- Floor ---
-    const floorMat = new THREE.MeshStandardMaterial({ color: 0xd9b382, roughness: 0.8 });
+    const floorMat = new THREE.MeshStandardMaterial({ color: 0xc9a06e, roughness: 0.8 });
     const floorGeo = new THREE.PlaneGeometry(6, 6);
     const floor = new THREE.Mesh(floorGeo, floorMat);
     floor.rotation.x = -Math.PI / 2;
@@ -146,7 +181,7 @@
     scene.add(gridHelper);
 
     // --- Walls ---
-    const wallMat = new THREE.MeshStandardMaterial({ color: 0xf0e6d2, roughness: 0.9 });
+    const wallMat = new THREE.MeshStandardMaterial({ color: 0xdccdb5, roughness: 0.9 });
 
     const backWall = new THREE.Mesh(new THREE.BoxGeometry(6, 3, 0.2), wallMat);
     backWall.position.set(0, 1.5, -2.9);
@@ -257,8 +292,14 @@
       'UFO': 'यूएफ़ओ',
       'Dinosaur': 'डायनासोर',
       'Magic Lamp': 'जादुई चिराग',
-      'Disco Ball': 'डिस्को बॉल'
+      'Disco Ball': 'डिस्को बॉल',
+      'Vase': 'फूलदान',
+      'Dragon': 'ड्रैगन',
+      'Duck': 'बत्तख',
+      'Fox': 'लोमड़ी',
+      'Car': 'गाड़ी'
     };
+    const labelSprites = [];
     function addLabel(parent, text, height) {
       const hindi = HINDI[text] || text;
       parent.userData.hindi = hindi;
@@ -268,6 +309,16 @@
       canvas.height = 96;
       const ctx = canvas.getContext('2d');
       ctx.clearRect(0, 0, 256, 96);
+      ctx.fillStyle = 'rgba(15, 20, 30, 0.66)';
+      ctx.beginPath();
+      const r = 18;
+      ctx.moveTo(8 + r, 5);
+      ctx.lineTo(248 - r, 5); ctx.quadraticCurveTo(248, 5, 248, 5 + r);
+      ctx.lineTo(248, 91 - r); ctx.quadraticCurveTo(248, 91, 248 - r, 91);
+      ctx.lineTo(8 + r, 91); ctx.quadraticCurveTo(8, 91, 8, 91 - r);
+      ctx.lineTo(8, 5 + r); ctx.quadraticCurveTo(8, 5, 8 + r, 5);
+      ctx.closePath();
+      ctx.fill();
       ctx.fillStyle = '#ffffff';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -288,11 +339,12 @@
       const texture = new THREE.CanvasTexture(canvas);
       const spriteMat = new THREE.SpriteMaterial({ map: texture, depthTest: false, transparent: true });
       const sprite = new THREE.Sprite(spriteMat);
-      sprite.scale.set(0.6, 0.22, 1);
+      sprite.scale.set(0.44, 0.165, 1);
       sprite.position.set(0, height, 0);
       sprite.userData.isPickable = false;
       sprite.raycast = function() {};
       parent.add(sprite);
+      labelSprites.push(sprite);
       return sprite;
     }
     // --- Refrigerator ---
@@ -624,13 +676,6 @@
     room2Grid.position.set(room2CenterX, 0.012, 0);
     scene.add(room2Grid);
 
-    const room2BackWall = new THREE.Mesh(new THREE.BoxGeometry(6.8, 3, 0.2), wallMat);
-    room2BackWall.position.set(room2CenterX, 1.5, -3.4);
-    room2BackWall.receiveShadow = true;
-    room2BackWall.castShadow = true;
-    room2BackWall.userData.isEnvironment = true;
-    scene.add(room2BackWall);
-
     const room2FrontWall = new THREE.Mesh(new THREE.BoxGeometry(6.8, 3, 0.2), wallMat);
     room2FrontWall.position.set(room2CenterX, 1.5, 3.4);
     room2FrontWall.receiveShadow = true;
@@ -638,14 +683,232 @@
     room2FrontWall.userData.isEnvironment = true;
     scene.add(room2FrontWall);
 
-    const room2RightWall = new THREE.Mesh(new THREE.BoxGeometry(0.2, 3, 6.8), wallMat);
-    room2RightWall.position.set(9.7, 1.5, 0);
-    room2RightWall.receiveShadow = true;
-    room2RightWall.castShadow = true;
-    room2RightWall.userData.isEnvironment = true;
-    scene.add(room2RightWall);
+    // Room 2 back wall (shared with Room 4) with a doorway
+    const room2BackWallA = new THREE.Mesh(new THREE.BoxGeometry(2.7, 3, 0.2), wallMat);
+    room2BackWallA.position.set(4.25, 1.5, -3.4);
+    const room2BackWallB = new THREE.Mesh(new THREE.BoxGeometry(2.7, 3, 0.2), wallMat);
+    room2BackWallB.position.set(8.35, 1.5, -3.4);
+    const room2BackLintel = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.6, 0.2), wallMat);
+    room2BackLintel.position.set(6.3, 2.7, -3.4);
+    [room2BackWallA, room2BackWallB, room2BackLintel].forEach((m) => {
+      m.receiveShadow = true;
+      m.castShadow = true;
+      m.userData.isEnvironment = true;
+      scene.add(m);
+    });
+
+    // Room 2 right wall (shared with Room 3) with a doorway
+    const room2RightWallA = new THREE.Mesh(new THREE.BoxGeometry(0.2, 3, 3.8), wallMat);
+    room2RightWallA.position.set(9.7, 1.5, -1.1);
+    const room2RightWallB = new THREE.Mesh(new THREE.BoxGeometry(0.2, 3, 0.8), wallMat);
+    room2RightWallB.position.set(9.7, 1.5, 2.6);
+    const room2RightLintel = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.6, 1.4), wallMat);
+    room2RightLintel.position.set(9.7, 2.7, 1.5);
+    [room2RightWallA, room2RightWallB, room2RightLintel].forEach((m) => {
+      m.receiveShadow = true;
+      m.castShadow = true;
+      m.userData.isEnvironment = true;
+      scene.add(m);
+    });
 
     addRoomSign('Room 2 →', 'दूसरा कमरा', new THREE.Vector3(2.55, 2.75, 1.5));
+    addRoomSign('Room 3 →', 'तीसरा कमरा', new THREE.Vector3(9.35, 2.75, 1.5));
+    addRoomSign('Room 4', 'चौथा कमरा', new THREE.Vector3(6.3, 2.75, -3.05));
+
+    // ============================================================
+    // --- Room 3: Studio / Cozy Lounge ---
+    // ============================================================
+    const room3CenterX = 13.1;
+    const room3FloorMat = new THREE.MeshStandardMaterial({ color: 0xcbb69c, roughness: 0.85 });
+    const room3Floor = new THREE.Mesh(new THREE.PlaneGeometry(6.8, 6.8), room3FloorMat);
+    room3Floor.rotation.x = -Math.PI / 2;
+    room3Floor.position.set(room3CenterX, 0.002, 0);
+    room3Floor.receiveShadow = true;
+    room3Floor.userData.isEnvironment = true;
+    scene.add(room3Floor);
+
+    const room3Grid = new THREE.GridHelper(6.8, 14, 0x9c8a74, 0x9c8a74);
+    room3Grid.position.set(room3CenterX, 0.012, 0);
+    scene.add(room3Grid);
+
+    const room3WallMat = new THREE.MeshStandardMaterial({ color: 0xead9c6, roughness: 0.9 });
+    const room3BackWall = new THREE.Mesh(new THREE.BoxGeometry(6.8, 3, 0.2), room3WallMat);
+    room3BackWall.position.set(room3CenterX, 1.5, -3.4);
+    const room3FrontWall = new THREE.Mesh(new THREE.BoxGeometry(6.8, 3, 0.2), room3WallMat);
+    room3FrontWall.position.set(room3CenterX, 1.5, 3.4);
+    const room3RightWall = new THREE.Mesh(new THREE.BoxGeometry(0.2, 3, 6.8), room3WallMat);
+    room3RightWall.position.set(16.5, 1.5, 0);
+    [room3BackWall, room3FrontWall, room3RightWall].forEach((m) => {
+      m.receiveShadow = true;
+      m.castShadow = true;
+      m.userData.isEnvironment = true;
+      scene.add(m);
+    });
+
+    const loungeLight = new THREE.PointLight(0xffd9a0, 0.5, 9);
+    loungeLight.position.set(13.1, 2.4, 0);
+    scene.add(loungeLight);
+
+    const room3Rug = createBox(4.4, 0.02, 3.4, 0x8390b5, { x: 13.1, y: 0.022, z: 0.2 });
+    addRoomEnvironment(room3Rug);
+    addLabel(room3Rug, 'Rug', 0.18);
+
+    const loungeTable = new THREE.Group();
+    loungeTable.add(createBox(1.3, 0.08, 0.75, 0x7a5a3a, { x: 0, y: 0.48, z: 0 }));
+    [[-0.5, -0.28], [0.5, -0.28], [-0.5, 0.28], [0.5, 0.28]].forEach((p) => {
+      loungeTable.add(createBox(0.08, 0.45, 0.08, 0x5f4327, { x: p[0], y: 0.225, z: p[1] }));
+    });
+    loungeTable.position.set(13.1, 0, 0.8);
+    addRoomEnvironment(loungeTable);
+    addLabel(loungeTable, 'Table', 0.68);
+
+    // ============================================================
+    // --- Room 4: Curiosities / Sci-Fi Gallery ---
+    // ============================================================
+    const room4CenterZ = -6.8;
+    const room4FloorMat = new THREE.MeshStandardMaterial({ color: 0x77808f, roughness: 0.8 });
+    const room4Floor = new THREE.Mesh(new THREE.PlaneGeometry(6.8, 6.8), room4FloorMat);
+    room4Floor.rotation.x = -Math.PI / 2;
+    room4Floor.position.set(room2CenterX, 0.002, room4CenterZ);
+    room4Floor.receiveShadow = true;
+    room4Floor.userData.isEnvironment = true;
+    scene.add(room4Floor);
+
+    const room4Grid = new THREE.GridHelper(6.8, 14, 0x5c6673, 0x5c6673);
+    room4Grid.position.set(room2CenterX, 0.012, room4CenterZ);
+    scene.add(room4Grid);
+
+    const room4WallMat = new THREE.MeshStandardMaterial({ color: 0xcdd6e0, roughness: 0.85 });
+    const room4BackWall = new THREE.Mesh(new THREE.BoxGeometry(6.8, 3, 0.2), room4WallMat);
+    room4BackWall.position.set(room2CenterX, 1.5, -10.2);
+    const room4LeftWall = new THREE.Mesh(new THREE.BoxGeometry(0.2, 3, 6.8), room4WallMat);
+    room4LeftWall.position.set(2.9, 1.5, room4CenterZ);
+    const room4RightWall = new THREE.Mesh(new THREE.BoxGeometry(0.2, 3, 6.8), room4WallMat);
+    room4RightWall.position.set(9.7, 1.5, room4CenterZ);
+    [room4BackWall, room4LeftWall, room4RightWall].forEach((m) => {
+      m.receiveShadow = true;
+      m.castShadow = true;
+      m.userData.isEnvironment = true;
+      scene.add(m);
+    });
+
+    const galleryLight = new THREE.PointLight(0x9fd0ff, 0.55, 9);
+    galleryLight.position.set(room2CenterX, 2.5, room4CenterZ);
+    scene.add(galleryLight);
+
+    const galleryRug = createCylinder(1.9, 1.9, 0.02, 32, 0x2f3a4a, { x: 6.3, y: 0.025, z: -8.6 });
+    addRoomEnvironment(galleryRug);
+    const galleryRug2 = createBox(2.6, 0.02, 2.2, 0x5b4636, { x: 8.0, y: 0.022, z: -8.2 });
+    addRoomEnvironment(galleryRug2);
+
+    // --- Imported high-poly glTF assets ---
+    function placeGLTF(name, opts) {
+      gltfLoader.load('assets/models/' + name + '.glb', (gltf) => {
+        try {
+          const model = gltf.scene;
+          if (opts.hideMeshes) {
+            const hidden = [];
+            model.traverse((o) => {
+              if (o.isMesh && opts.hideMeshes.includes(o.name)) hidden.push(o);
+            });
+            hidden.forEach((o) => { if (o.parent) o.parent.remove(o); });
+          }
+          model.traverse((o) => {
+            if (o.isMesh) {
+              o.castShadow = opts.castShadow !== false;
+              o.receiveShadow = true;
+              if (opts.material) {
+                o.material = opts.material;
+              } else {
+                const mats = Array.isArray(o.material) ? o.material : [o.material];
+                mats.forEach((m) => { if (m) { m.envMap = envTexture; m.envMapIntensity = opts.envMapIntensity || 1.0; } });
+              }
+            }
+          });
+          const size = new THREE.Vector3();
+          new THREE.Box3().setFromObject(model).getSize(size);
+          const scale = (opts.height || 1) / Math.max(size.y, 0.0001);
+          model.scale.setScalar(scale);
+          const scaledBox = new THREE.Box3().setFromObject(model);
+          const center = new THREE.Vector3();
+          scaledBox.getCenter(center);
+          model.position.x -= center.x;
+          model.position.z -= center.z;
+          model.position.y -= scaledBox.min.y;
+
+          const root = new THREE.Group();
+          root.add(model);
+          root.position.set(opts.x, opts.y || 0, opts.z);
+          root.rotation.y = opts.rotationY || 0;
+          addRoomEnvironment(root);
+          if (opts.label) {
+            const h = opts.labelHeight != null ? opts.labelHeight : (opts.height || 1) + 0.3;
+            addLabel(root, opts.label, h);
+          }
+          if (gltf.animations && gltf.animations.length) {
+            const mixer = new THREE.AnimationMixer(model);
+            const clip = opts.clip
+              ? gltf.animations.find((a) => a.name === opts.clip) || gltf.animations[0]
+              : gltf.animations[0];
+            if (clip) mixer.clipAction(clip).play();
+            animatedObjects.push((t, dt) => mixer.update(dt));
+          }
+          console.log('ASSET READY', name);
+        } catch (e) {
+          console.error('MODEL PLACE ERR', name, e);
+        }
+      }, undefined, (err) => console.error('MODEL LOAD ERR', name, err));
+    }
+
+    const sideTable = new THREE.Group();
+    sideTable.add(createBox(0.62, 0.06, 0.62, 0x6d4f36, { x: 0, y: 0.55, z: 0 }));
+    sideTable.add(createBox(0.08, 0.52, 0.08, 0x513a27, { x: -0.23, y: 0.26, z: -0.23 }));
+    sideTable.add(createBox(0.08, 0.52, 0.08, 0x513a27, { x: 0.23, y: 0.26, z: -0.23 }));
+    sideTable.add(createBox(0.08, 0.52, 0.08, 0x513a27, { x: -0.23, y: 0.26, z: 0.23 }));
+    sideTable.add(createBox(0.08, 0.52, 0.08, 0x513a27, { x: 0.23, y: 0.26, z: 0.23 }));
+    sideTable.position.set(15.35, 0, -2.2);
+    addRoomEnvironment(sideTable);
+
+    const lampGlassMat = new THREE.MeshStandardMaterial({
+      color: 0xffcf9a, metalness: 0.2, roughness: 0.2,
+      transparent: true, opacity: 0.82, emissive: 0xff9f3d, emissiveIntensity: 0.35,
+      envMap: envTexture
+    });
+    const dragonMat = new THREE.MeshStandardMaterial({
+      color: 0x2f8f7a, metalness: 0.25, roughness: 0.35, envMapIntensity: 1.1,
+      envMap: envTexture
+    });
+
+    const plant3 = new THREE.Group();
+    plant3.add(createCylinder(0.24, 0.3, 0.4, 8, 0xb5651d, { x: 0, y: 0.2, z: 0 }));
+    plant3.add(createCylinder(0.22, 0.22, 0.03, 8, 0x3d2b1f, { x: 0, y: 0.41, z: 0 }));
+    plant3.add(createCylinder(0.025, 0.025, 0.7, 5, 0x2f6b3a, { x: 0, y: 0.75, z: 0 }));
+    [[0.1, 0.95, 0.02], [-0.13, 1.08, -0.04], [0.04, 1.2, 0.1], [-0.02, 1.32, -0.08]].forEach((p) => {
+      plant3.add(createSphere(0.17, 0x3fa34d, { x: p[0], y: p[1], z: p[2] }, { x: 1.15, y: 0.7, z: 0.85 }));
+    });
+    plant3.position.set(10.2, 0, -3.0);
+    addRoomPickable(plant3);
+    addLabel(plant3, 'Plant', 1.3);
+
+    // Room 3 assets
+    placeGLTF('GlamVelvetSofa', { x: 13.1, z: -2.3, height: 0.85, label: 'Sofa', labelHeight: 1.25 });
+    placeGLTF('SheenChair', { x: 11.8, z: -1.7, height: 0.95, rotationY: -0.7, label: 'Chair', labelHeight: 1.3 });
+    placeGLTF('IridescenceLamp', { x: 15.35, y: 0.6, z: -2.2, height: 0.5, material: lampGlassMat, label: 'Lamp', labelHeight: 0.62 });
+    placeGLTF('GlassVaseFlowers', { x: 13.1, y: 0.56, z: 0.8, height: 0.35, label: 'Vase', labelHeight: 0.42 });
+
+    // Room 4 assets
+    placeGLTF('DragonAttenuation', {
+      x: 6.3, z: -9.3, height: 1.7, rotationY: Math.PI,
+      hideMeshes: ['Cloth_Backdrop'], material: dragonMat,
+      label: 'Dragon', labelHeight: 2.2, castShadow: false
+    });
+    placeGLTF('ToyCar', { x: 4.8, z: -7.2, height: 0.36, rotationY: 0.6, hideMeshes: ['Fabric'], label: 'Car', labelHeight: 0.6 });
+    placeGLTF('Duck', { x: 7.4, z: -7.9, height: 0.4, rotationY: -0.7, label: 'Duck', labelHeight: 0.62 });
+    placeGLTF('Fox', { x: 8.6, z: -9.0, height: 0.9, rotationY: Math.PI, clip: 'Run', label: 'Fox', labelHeight: 1.3 });
+
+    const lampBulb = new THREE.PointLight(0xffc27a, 0.5, 3);
+    lampBulb.position.set(15.35, 1.05, -2.2);
+    scene.add(lampBulb);
 
     // Rug
     const rug = createBox(4.6, 0.02, 3.6, 0xb56576, { x: 6.3, y: 0.022, z: 0.3 });
@@ -1082,11 +1345,20 @@
 
     playerRig.position.set(0, 0, 2.5);
 
+    if (new URLSearchParams(location.search).has('debug')) {
+      window.__rig = playerRig;
+      window.__camera = camera;
+      window.__scene = scene;
+    }
+
     // --- Pickable objects list ---
     const pickableObjects = [];
     const environmentObjects = new Set([
       floor, gridHelper, backWall, leftWall, rightWallA, rightWallB, doorLintel,
-      room2Floor, room2BackWall, room2FrontWall, room2RightWall,
+      room2Floor, room2FrontWall, room2BackWallA, room2BackWallB, room2BackLintel,
+      room2RightWallA, room2RightWallB, room2RightLintel,
+      room3Floor, room3BackWall, room3FrontWall, room3RightWall,
+      room4Floor, room4BackWall, room4LeftWall, room4RightWall,
       fridgeBody, handle, divider, handle2,
       counterTop, base1, base2, base3, sideCounter, sideBase,
       stoveBase, sinkBasin, faucet,
@@ -1198,7 +1470,12 @@
       UFO: 'audio/ufo.mp3',
       Dinosaur: 'audio/dinosaur.mp3',
       'Magic Lamp': 'audio/magic_lamp.mp3',
-      'Disco Ball': 'audio/disco_ball.mp3'
+      'Disco Ball': 'audio/disco_ball.mp3',
+      Vase: 'audio/vase.mp3',
+      Dragon: 'audio/dragon.mp3',
+      Duck: 'audio/duck.mp3',
+      Fox: 'audio/fox.mp3',
+      Car: 'audio/car.mp3'
     };
     const audioBuffers = {};
     let audioCtx = null;
@@ -1445,6 +1722,8 @@
       return { x: 0, y: 0 };
     }
     const clock = new THREE.Clock();
+    const labelCamPos = new THREE.Vector3();
+    const labelTmp = new THREE.Vector3();
 
     renderer.setAnimationLoop(() => {
       try {
@@ -1452,6 +1731,17 @@
       const elapsed = clock.elapsedTime;
 
       animatedObjects.forEach((animate) => animate(elapsed, delta));
+
+      if (labelSprites.length) {
+        const camPos = renderer.xr.isPresenting
+          ? renderer.xr.getCamera().getWorldPosition(labelCamPos)
+          : camera.getWorldPosition(labelCamPos);
+        labelSprites.forEach((sprite) => {
+          sprite.getWorldPosition(labelTmp);
+          const f = THREE.MathUtils.clamp(camPos.distanceTo(labelTmp) / 4, 0.62, 1.4);
+          sprite.scale.set(0.44 * f, 0.165 * f, 1);
+        });
+      }
 
       if (renderer.xr.isPresenting) {
         const thumbstick = getLeftThumbstickFromSession();
