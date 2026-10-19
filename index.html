@@ -777,7 +777,7 @@
          const ease = 1 - Math.pow(1 - t, 3);
          if (!o.userData.returnStart) o.userData.returnStart = o.position.clone();
          o.position.lerpVectors(o.userData.returnStart, o.userData.homePosition, ease);
-         o.quaternion.slerpQuaternions(o.userData.returnQuatStart, o.userData.homeQuaternion, ease);
+         o.quaternion.copy(o.userData.returnQuatStart).slerp(o.userData.homeQuaternion, ease);
          if (t >= 1) {
            o.position.copy(o.userData.homePosition);
            o.quaternion.copy(o.userData.homeQuaternion);
