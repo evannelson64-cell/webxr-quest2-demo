@@ -178,20 +178,21 @@
 
     function addLabel(parent, text, height) {
       const canvas = document.createElement('canvas');
-      canvas.width = 512;
-      canvas.height = 128;
+      canvas.width = 256;
+      canvas.height = 64;
       const ctx = canvas.getContext('2d');
-      ctx.fillStyle = 'rgba(0,0,0,0.65)';
-      ctx.fillRect(0, 0, 512, 128);
+      ctx.clearRect(0, 0, 256, 64);
       ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 48px Arial';
+      ctx.font = 'bold 28px Arial';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(text, 256, 64);
+      ctx.shadowColor = 'rgba(0,0,0,0.8)';
+      ctx.shadowBlur = 4;
+      ctx.fillText(text, 128, 32);
       const texture = new THREE.CanvasTexture(canvas);
       const spriteMat = new THREE.SpriteMaterial({ map: texture, depthTest: false, transparent: true });
       const sprite = new THREE.Sprite(spriteMat);
-      sprite.scale.set(1.2, 0.3, 1);
+      sprite.scale.set(0.6, 0.15, 1);
       sprite.position.set(0, height, 0);
       parent.add(sprite);
       return sprite;
