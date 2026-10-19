@@ -101,11 +101,13 @@
     document.body.appendChild(vrButtonThree);
 
     vrButton.addEventListener('click', () => {
+      unlockAudio();
       loadingEl.style.display = 'block';
       vrButtonThree.click();
     });
 
     renderer.xr.addEventListener('sessionstart', () => {
+      unlockAudio();
       loadingEl.style.display = 'none';
       console.log('XR session started');
     });
@@ -614,11 +616,60 @@
     const raycaster = new THREE.Raycaster();
 
     // --- Select handlers ---
-    function playBeep() {
-      try {
+    const AUDIO_CLIPS = {
+      Refrigerator: 'audio/refrigerator.mp3',
+      Counter: 'audio/counter.mp3',
+      Stove: 'audio/stove.mp3',
+      Sink: 'audio/sink.mp3',
+      Chair: 'audio/chair.mp3',
+      Table: 'audio/table.mp3',
+      Plate: 'audio/plate.mp3',
+      Fork: 'audio/fork.mp3',
+      Spoon: 'audio/spoon.mp3',
+      Mug: 'audio/mug.mp3'
+    };
+    const audioBuffers = {};
+    let audioCtx = null;
+    let audioLoadPromise = null;
+
+    function getAudioContext() {
+      if (!audioCtx) {
         const Ctx = window.AudioContext || window.webkitAudioContext;
-        if (!Ctx) return;
-        const ctx = new Ctx();
+        if (Ctx) audioCtx = new Ctx();
+      }
+      return audioCtx;
+    }
+
+    function loadAudioClips() {
+      if (audioLoadPromise) return audioLoadPromise;
+      const ctx = getAudioContext();
+      if (!ctx) return Promise.resolve();
+      audioLoadPromise = Promise.all(Object.keys(AUDIO_CLIPS).map(async (label) => {
+        try {
+          const res = await fetch(AUDIO_CLIPS[label]);
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const data = await res.arrayBuffer();
+          audioBuffers[label] = await ctx.decodeAudioData(data);
+        } catch (e) {
+          console.error('AUDIO LOAD ERR', label, e);
+        }
+      }));
+      return audioLoadPromise;
+    }
+
+    function unlockAudio() {
+      const ctx = getAudioContext();
+      if (!ctx) return;
+      if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+      loadAudioClips();
+    }
+
+    window.addEventListener('pointerdown', unlockAudio, { passive: true });
+
+    function playBeep() {
+      const ctx = getAudioContext();
+      if (!ctx || ctx.state !== 'running') return;
+      try {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = 'sine';
@@ -631,37 +682,50 @@
       } catch (e) { console.error('BEEP ERR', e); }
     }
 
-    function speakHindi(text) {
-      if (!text) return;
-      playBeep();
+    function speakFallback(text) {
+      if (!('speechSynthesis' in window)) return false;
+      try {
+        window.speechSynthesis.resume();
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = 'hi-IN';
+        const voices = window.speechSynthesis.getVoices();
+        const v = voices.find((x) => x.lang && x.lang.toLowerCase().startsWith('hi'));
+        if (v) u.voice = v;
+        u.volume = 1;
+        u.rate = 1;
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(u);
+        return true;
+      } catch (err) {
+        console.error('SPEECH ERR', err);
+        return false;
+      }
+    }
+
+    async function speakHindi(label) {
+      if (!label) return;
+      const text = HINDI[label] || label;
       const info = document.getElementById('info');
+      const ctx = getAudioContext();
+      if (ctx && ctx.state === 'suspended') {
+        try { await ctx.resume(); } catch (e) { console.error('RESUME ERR', e); }
+      }
+      playBeep();
       if (info) info.textContent = 'Speaking: ' + text;
-      const url = 'https://translate.google.com/translate_tts?ie=UTF-8&tl=hi&client=tw-ob&q=' + encodeURIComponent(text);
-      const audio = new Audio(url);
-      let played = false;
-      const fallback = () => {
-        if (played) return;
-        played = true;
-        if ('speechSynthesis' in window) {
-          try {
-            window.speechSynthesis.resume();
-            const u = new SpeechSynthesisUtterance(text);
-            u.lang = 'hi-IN';
-            const voices = window.speechSynthesis.getVoices();
-            const v = voices.find((x) => x.lang && x.lang.toLowerCase().startsWith('hi')) || voices[0];
-            if (v) u.voice = v;
-            u.volume = 1;
-            u.rate = 1;
-            window.speechSynthesis.cancel();
-            window.speechSynthesis.speak(u);
-            if (info) info.textContent = 'Speaking (fallback): ' + text;
-          } catch (err) { console.error('SPEECH ERR', err); }
-        }
-      };
-      audio.addEventListener('playing', () => { played = true; });
-      audio.addEventListener('error', (e) => { console.error('AUDIO ERR', e); fallback(); });
-      setTimeout(fallback, 1500);
-      audio.play().then(() => { played = true; }).catch((e) => { console.error('PLAY ERR', e); fallback(); });
+
+      await loadAudioClips();
+      const buffer = audioBuffers[label];
+      if (buffer && ctx && ctx.state === 'running') {
+        try {
+          const src = ctx.createBufferSource();
+          src.buffer = buffer;
+          src.connect(ctx.destination);
+          src.start();
+          return;
+        } catch (e) { console.error('PLAY ERR', e); }
+      }
+      if (info) info.textContent = 'Speaking (fallback): ' + text;
+      speakFallback(text);
     }
 
     function onSelectStartPick(event) {
@@ -680,7 +744,7 @@
         let spoken = false;
         while (o) {
           if (o.userData && o.userData.hindi) {
-            speakHindi(o.userData.hindi);
+            speakHindi(o.userData.label || o.userData.hindi);
             spoken = true;
             break;
           }
