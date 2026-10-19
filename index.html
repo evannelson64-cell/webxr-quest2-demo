@@ -614,8 +614,26 @@
     const raycaster = new THREE.Raycaster();
 
     // --- Select handlers ---
+    function playBeep() {
+      try {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        if (!Ctx) return;
+        const ctx = new Ctx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = 660;
+        gain.gain.value = 0.08;
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.12);
+      } catch (e) { console.error('BEEP ERR', e); }
+    }
+
     function speakHindi(text) {
       if (!text) return;
+      playBeep();
       const info = document.getElementById('info');
       if (info) info.textContent = 'Speaking: ' + text;
       const url = 'https://translate.google.com/translate_tts?ie=UTF-8&tl=hi&client=tw-ob&q=' + encodeURIComponent(text);
