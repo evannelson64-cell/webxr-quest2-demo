@@ -631,11 +631,18 @@
 
        if (controllerState[controllerIndex].object) {
          const heldObj = controllerState[controllerIndex].object;
-         controller.remove(heldObj);
          const worldPos = new THREE.Vector3();
          heldObj.getWorldPosition(worldPos);
+         const worldQuat = new THREE.Quaternion();
+         heldObj.getWorldQuaternion(worldQuat);
+         controller.remove(heldObj);
          scene.add(heldObj);
          heldObj.position.copy(worldPos);
+         heldObj.quaternion.copy(worldQuat);
+         if (!heldObj.userData.homePosition) {
+           heldObj.userData.homePosition = worldPos.clone();
+           heldObj.userData.homeQuaternion = worldQuat.clone();
+         }
          // tether: animate back to home
          heldObj.userData.returnStart = heldObj.position.clone();
          heldObj.userData.returnQuatStart = heldObj.quaternion.clone();
@@ -761,6 +768,10 @@
        // Tether return animation
        for (let i = returningObjects.length - 1; i >= 0; i--) {
          const o = returningObjects[i];
+         if (!o || !o.userData || !o.userData.homePosition || !o.userData.returnStart || !o.userData.returnQuatStart) {
+           returningObjects.splice(i, 1);
+           continue;
+         }
          o.userData.returnProgress = (o.userData.returnProgress || 0) + delta * 2.5;
          const t = Math.min(1, o.userData.returnProgress);
          const ease = 1 - Math.pow(1 - t, 3);
