@@ -176,15 +176,42 @@
       return mesh;
     }
 
+    function addLabel(parent, text, height) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512;
+      canvas.height = 128;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = 'rgba(0,0,0,0.65)';
+      ctx.fillRect(0, 0, 512, 128);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 48px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, 256, 64);
+      const texture = new THREE.CanvasTexture(canvas);
+      const spriteMat = new THREE.SpriteMaterial({ map: texture, depthTest: false, transparent: true });
+      const sprite = new THREE.Sprite(spriteMat);
+      sprite.scale.set(1.2, 0.3, 1);
+      sprite.position.set(0, height, 0);
+      parent.add(sprite);
+      return sprite;
+    }
     // --- Refrigerator ---
-    const fridgeBody = createBox(1.0, 1.8, 0.8, 0xcccccc, { x: -2.2, y: 0.9, z: -2.4 });
-    scene.add(fridgeBody);
-    const handle = createBox(0.08, 0.4, 0.08, 0x888888, { x: -1.75, y: 1.0, z: -2.4 });
-    scene.add(handle);
-    const divider = createBox(1.0, 0.04, 0.8, 0xaaaaaa, { x: -2.2, y: 1.2, z: -2.4 });
-    scene.add(divider);
-    const handle2 = createBox(0.08, 0.2, 0.08, 0x888888, { x: -1.75, y: 1.6, z: -2.4 });
-    scene.add(handle2);
+    const fridgeGroup = new THREE.Group();
+    const fridgeBody = createBox(1.0, 1.8, 0.8, 0xcccccc, { x: 0, y: 0.9, z: 0 });
+    fridgeGroup.add(fridgeBody);
+    const handle = createBox(0.08, 0.4, 0.08, 0x888888, { x: 0.45, y: 1.0, z: 0 });
+    fridgeGroup.add(handle);
+    const divider = createBox(1.0, 0.04, 0.8, 0xaaaaaa, { x: 0, y: 1.2, z: 0 });
+    fridgeGroup.add(divider);
+    const handle2 = createBox(0.08, 0.2, 0.08, 0x888888, { x: 0.45, y: 1.6, z: 0 });
+    fridgeGroup.add(handle2);
+    fridgeGroup.position.set(-2.2, 0, -2.4);
+    fridgeGroup.userData.isEnvironment = true;
+    fridgeGroup.userData.label = 'Refrigerator';
+    [fridgeBody, handle, divider, handle2].forEach(m => { m.userData.isEnvironment = true; m.userData.isPickable = false; });
+    scene.add(fridgeGroup);
+    addLabel(fridgeGroup, 'Refrigerator', 2.0);
 
     // --- Kitchen Counter ---
     const counterMat = new THREE.MeshStandardMaterial({ color: 0xc7a27a, roughness: 0.7, flatShading: true });
@@ -192,7 +219,9 @@
     counterTop.position.set(0.5, 0.9, -2.3);
     counterTop.castShadow = true;
     counterTop.receiveShadow = true;
+    counterTop.userData.isEnvironment = true;
     scene.add(counterTop);
+    addLabel(counterTop, 'Counter', 0.2);
 
     const baseMat = new THREE.MeshStandardMaterial({ color: 0xb08b5e, roughness: 0.8, flatShading: true });
     const base1 = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 0.8), baseMat);
@@ -224,12 +253,16 @@
 
     // --- Stove ---
     const stoveBase = createBox(0.8, 0.1, 0.8, 0x333333, { x: 1.0, y: 0.95, z: -2.3 });
+    stoveBase.userData.isEnvironment = true;
     scene.add(stoveBase);
+    addLabel(stoveBase, 'Stove', 0.3);
     const burnerMat = new THREE.MeshStandardMaterial({ color: 0x111111, emissive: 0x331100 });
     for (let i = 0; i < 4; i++) {
       const burner = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.02, 8), burnerMat);
       burner.position.set(1.0 + (i % 2 === 0 ? -0.2 : 0.2), 1.02, -2.3 + (i < 2 ? -0.2 : 0.2));
       burner.castShadow = true;
+      burner.userData.isEnvironment = true;
+      burner.userData.isPickable = false;
       scene.add(burner);
     }
 
@@ -239,13 +272,17 @@
     sinkBasin.position.set(-0.5, 0.85, -2.3);
     sinkBasin.castShadow = true;
     sinkBasin.receiveShadow = true;
+    sinkBasin.userData.isEnvironment = true;
     scene.add(sinkBasin);
+    addLabel(sinkBasin, 'Sink', 0.3);
     const faucetGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.4, 6);
     const faucetMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.8 });
     const faucet = new THREE.Mesh(faucetGeo, faucetMat);
     faucet.position.set(-0.5, 1.15, -2.1);
     faucet.rotation.x = 0.3;
     faucet.castShadow = true;
+    faucet.userData.isEnvironment = true;
+    faucet.userData.isPickable = false;
     scene.add(faucet);
 
     // --- Chair ---
@@ -282,6 +319,10 @@
 
       chairGroup.position.set(posX, 0, posZ);
       chairGroup.rotation.y = rotY;
+      chairGroup.userData.isPickable = true;
+      chairGroup.userData.label = 'Chair';
+      chairGroup.traverse((c) => { if (c !== chairGroup) c.userData.isPickable = false; });
+      addLabel(chairGroup, 'Chair', 1.2);
       return chairGroup;
     }
 
@@ -290,12 +331,15 @@
     scene.add(createChair(1.8, 0.2, 0.5));
 
     // --- Table ---
+    const tableGroup = new THREE.Group();
     const tableMat = new THREE.MeshStandardMaterial({ color: 0xa67b5b, roughness: 0.7, flatShading: true });
     const tableTop = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.1, 1.0), tableMat);
     tableTop.position.set(0.5, 0.75, 0.5);
     tableTop.castShadow = true;
     tableTop.receiveShadow = true;
-    scene.add(tableTop);
+    tableTop.userData.isEnvironment = true;
+    tableTop.userData.isPickable = false;
+    tableGroup.add(tableTop);
 
     const tLegMat = new THREE.MeshStandardMaterial({ color: 0x7a5a3a, roughness: 0.8 });
     const tLegPos = [[0.5-0.7, 0.35, 0.5-0.4], [0.5+0.7, 0.35, 0.5-0.4], [0.5-0.7, 0.35, 0.5+0.4], [0.5+0.7, 0.35, 0.5+0.4]];
@@ -304,23 +348,37 @@
       leg.position.set(pos[0], pos[1], pos[2]);
       leg.castShadow = true;
       leg.receiveShadow = true;
-      scene.add(leg);
+      leg.userData.isEnvironment = true;
+      leg.userData.isPickable = false;
+      tableGroup.add(leg);
     });
+    tableGroup.userData.isEnvironment = true;
+    tableGroup.userData.label = 'Table';
+    scene.add(tableGroup);
+    addLabel(tableGroup, 'Table', 1.0);
 
     // --- Plates, Forks, Spoons ---
     function createPlate(x, y, z) {
+      const plateGroup = new THREE.Group();
       const plateMat = new THREE.MeshStandardMaterial({ color: 0xf0f0f0, roughness: 0.3, flatShading: true });
       const plate = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.03, 8), plateMat);
-      plate.position.set(x, y, z);
+      plate.position.set(0, 0, 0);
       plate.castShadow = true;
       plate.receiveShadow = true;
-      scene.add(plate);
+      plateGroup.add(plate);
       const innerMat = new THREE.MeshStandardMaterial({ color: 0xe0e0e0, roughness: 0.4 });
       const inner = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.01, 8), innerMat);
-      inner.position.set(x, y + 0.015, z);
+      inner.position.set(0, 0.015, 0);
       inner.castShadow = true;
       inner.receiveShadow = true;
-      scene.add(inner);
+      plateGroup.add(inner);
+      plateGroup.position.set(x, y, z);
+      plateGroup.userData.isPickable = true;
+      plateGroup.userData.label = 'Plate';
+      plate.userData.isPickable = false;
+      inner.userData.isPickable = false;
+      scene.add(plateGroup);
+      addLabel(plateGroup, 'Plate', 0.15);
     }
 
     function createFork(x, y, z, rotY = 0) {
@@ -345,7 +403,11 @@
       }
       forkGroup.position.set(x, y, z);
       forkGroup.rotation.y = rotY;
+      forkGroup.userData.isPickable = true;
+      forkGroup.userData.label = 'Fork';
+      forkGroup.traverse((c) => { if (c !== forkGroup) c.userData.isPickable = false; });
       scene.add(forkGroup);
+      addLabel(forkGroup, 'Fork', 0.1);
     }
 
     function createSpoon(x, y, z, rotY = 0) {
@@ -365,7 +427,11 @@
       spoonGroup.add(bowl);
       spoonGroup.position.set(x, y, z);
       spoonGroup.rotation.y = rotY;
+      spoonGroup.userData.isPickable = true;
+      spoonGroup.userData.label = 'Spoon';
+      spoonGroup.traverse((c) => { if (c !== spoonGroup) c.userData.isPickable = false; });
       scene.add(spoonGroup);
+      addLabel(spoonGroup, 'Spoon', 0.1);
     }
 
     createPlate(0.5, 0.81, 0.5);
@@ -384,12 +450,18 @@
     mug1.position.set(-1.0, 0.98, -2.1);
     mug1.castShadow = true;
     mug1.receiveShadow = true;
+    mug1.userData.isPickable = true;
+    mug1.userData.label = 'Mug';
     scene.add(mug1);
+    addLabel(mug1, 'Mug', 0.2);
     const mug2 = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.15, 6), new THREE.MeshStandardMaterial({ color: 0xb22222, roughness: 0.5 }));
     mug2.position.set(1.8, 0.98, -2.4);
     mug2.castShadow = true;
     mug2.receiveShadow = true;
+    mug2.userData.isPickable = true;
+    mug2.userData.label = 'Mug';
     scene.add(mug2);
+    addLabel(mug2, 'Mug', 0.2);
 
     // --- Controllers ---
     const controllerModelFactory = new XRControllerModelFactory();
@@ -456,13 +528,26 @@
         const size = new THREE.Vector3();
         box.getSize(size);
         const volume = size.x * size.y * size.z;
-        if (volume < 0.05) {
+
+        // If an ancestor is already pickable, this part belongs to that unit
+        let ancestorPickable = false;
+        let p = obj.parent;
+        while (p) {
+          if (p.userData && p.userData.isPickable === true) { ancestorPickable = true; break; }
+          p = p.parent;
+        }
+        if (ancestorPickable) {
+          obj.userData.isPickable = false;
+          return;
+        }
+
+        if (obj.userData.isPickable !== true && volume < 0.05) {
           obj.userData.isPickable = true;
-          if (obj.isGroup) {
-            obj.children.forEach(child => {
-              if (child.isMesh) child.userData.isPickable = true;
-            });
-          }
+        }
+        if (obj.userData.isPickable === true && obj.isGroup) {
+          obj.children.forEach(child => {
+            if (child.isMesh) child.userData.isPickable = false;
+          });
         }
       }
     });
@@ -484,11 +569,19 @@
       }
     });
 
+    // Record home transforms for tether return
+    pickableObjects.forEach((o) => {
+      o.userData.homePosition = o.position.clone();
+      o.userData.homeQuaternion = o.quaternion.clone();
+      o.userData.homeParent = o.parent || scene;
+    });
+
     // --- Controller state ---
     const controllerState = [
       { object: null },
       { object: null }
     ];
+    const returningObjects = [];
 
     const raycaster = new THREE.Raycaster();
 
@@ -517,6 +610,9 @@
           hitObj = hitObj.parent;
         }
         if (pickableRoot) {
+          // cancel any in-flight return
+          const ri = returningObjects.indexOf(pickableRoot);
+          if (ri !== -1) returningObjects.splice(ri, 1);
           controller.attach(pickableRoot);
           pickableRoot.position.set(0, 0, -0.2);
           pickableRoot.rotation.set(0, 0, 0);
@@ -530,15 +626,20 @@
       const controller = event.target;
       const controllerIndex = controller === controller0 ? 0 : 1;
 
-      if (controllerState[controllerIndex].object) {
-        const heldObj = controllerState[controllerIndex].object;
-        controller.remove(heldObj);
-        const worldPos = new THREE.Vector3();
-        heldObj.getWorldPosition(worldPos);
-        scene.add(heldObj);
-        heldObj.position.copy(worldPos);
-        controllerState[controllerIndex].object = null;
-      }
+       if (controllerState[controllerIndex].object) {
+         const heldObj = controllerState[controllerIndex].object;
+         controller.remove(heldObj);
+         const worldPos = new THREE.Vector3();
+         heldObj.getWorldPosition(worldPos);
+         scene.add(heldObj);
+         heldObj.position.copy(worldPos);
+         // tether: animate back to home
+         heldObj.userData.returnStart = heldObj.position.clone();
+         heldObj.userData.returnQuatStart = heldObj.quaternion.clone();
+         heldObj.userData.returnProgress = 0;
+         if (!returningObjects.includes(heldObj)) returningObjects.push(heldObj);
+         controllerState[controllerIndex].object = null;
+       }
     }
 
     controller0.addEventListener('selectstart', onSelectStartPick);
@@ -613,7 +714,23 @@
         }
       }
 
-      renderer.render(scene, camera);
+       // Tether return animation
+       for (let i = returningObjects.length - 1; i >= 0; i--) {
+         const o = returningObjects[i];
+         o.userData.returnProgress = (o.userData.returnProgress || 0) + delta * 2.5;
+         const t = Math.min(1, o.userData.returnProgress);
+         const ease = 1 - Math.pow(1 - t, 3);
+         if (!o.userData.returnStart) o.userData.returnStart = o.position.clone();
+         o.position.lerpVectors(o.userData.returnStart, o.userData.homePosition, ease);
+         o.quaternion.slerpQuaternions(o.userData.returnQuatStart, o.userData.homeQuaternion, ease);
+         if (t >= 1) {
+           o.position.copy(o.userData.homePosition);
+           o.quaternion.copy(o.userData.homeQuaternion);
+           returningObjects.splice(i, 1);
+         }
+       }
+
+       renderer.render(scene, camera);
     });
 
     // Handle window resize
