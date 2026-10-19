@@ -176,23 +176,40 @@
       return mesh;
     }
 
+    const HINDI = {
+      'Refrigerator': 'फ्रिज',
+      'Counter': 'काउंटर',
+      'Stove': 'चूल्हा',
+      'Sink': 'सिंक',
+      'Chair': 'कुर्सी',
+      'Table': 'मेज़',
+      'Plate': 'थाली',
+      'Fork': 'कांटा',
+      'Spoon': 'चम्मच',
+      'Mug': 'मग'
+    };
     function addLabel(parent, text, height) {
+      const hindi = HINDI[text] || text;
+      parent.userData.hindi = hindi;
+      parent.userData.label = text;
       const canvas = document.createElement('canvas');
       canvas.width = 256;
-      canvas.height = 64;
+      canvas.height = 96;
       const ctx = canvas.getContext('2d');
-      ctx.clearRect(0, 0, 256, 64);
+      ctx.clearRect(0, 0, 256, 96);
       ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 28px Arial';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.shadowColor = 'rgba(0,0,0,0.8)';
       ctx.shadowBlur = 4;
-      ctx.fillText(text, 128, 32);
+      ctx.font = 'bold 24px Arial';
+      ctx.fillText(text, 128, 28);
+      ctx.font = 'bold 26px "Noto Sans Devanagari", "Mangal", Arial';
+      ctx.fillText(hindi, 128, 68);
       const texture = new THREE.CanvasTexture(canvas);
       const spriteMat = new THREE.SpriteMaterial({ map: texture, depthTest: false, transparent: true });
       const sprite = new THREE.Sprite(spriteMat);
-      sprite.scale.set(0.6, 0.15, 1);
+      sprite.scale.set(0.6, 0.22, 1);
       sprite.position.set(0, height, 0);
       sprite.userData.isPickable = false;
       sprite.raycast = function() {};
@@ -589,9 +606,35 @@
     const raycaster = new THREE.Raycaster();
 
     // --- Select handlers ---
+    function speakHindi(text) {
+      if (!text) return;
+      const url = 'https://translate.google.com/translate_tts?ie=UTF-8&tl=hi&client=tw-ob&q=' + encodeURIComponent(text);
+      const audio = new Audio(url);
+      audio.play().catch((e) => { console.error('TTS ERR', e); });
+    }
+
     function onSelectStartPick(event) {
       const controller = event.target;
       const controllerIndex = controller === controller0 ? 0 : 1;
+
+      // Speak Hindi for any labeled object being pointed at
+      const tempMatrix0 = new THREE.Matrix4();
+      tempMatrix0.identity().extractRotation(controller.matrixWorld);
+      const rc = new THREE.Raycaster();
+      rc.ray.origin.setFromMatrixPosition(controller.matrixWorld);
+      rc.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix0);
+      const allHits = rc.intersectObjects(scene.children, true);
+      for (let i = 0; i < allHits.length; i++) {
+        let o = allHits[i].object;
+        while (o) {
+          if (o.userData && o.userData.hindi) {
+            speakHindi(o.userData.hindi);
+            break;
+          }
+          o = o.parent;
+        }
+        if (i === 0) break;
+      }
 
       if (controllerState[controllerIndex].object) return;
 
