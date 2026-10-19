@@ -608,19 +608,28 @@
     // --- Select handlers ---
     function speakHindi(text) {
       if (!text) return;
-      const url = 'https://translate.google.com/translate_tts?ie=UTF-8&tl=hi&client=gtx&q=' + encodeURIComponent(text);
+      const info = document.getElementById('info');
+      if (info) info.textContent = 'Speaking: ' + text;
+      const url = 'https://translate.google.com/translate_tts?ie=UTF-8&tl=hi&client=tw-ob&q=' + encodeURIComponent(text);
       const audio = new Audio(url);
-      audio.play().catch((e) => {
-        console.error('TTS ERR', e);
+      let played = false;
+      const fallback = () => {
+        if (played) return;
+        played = true;
         if ('speechSynthesis' in window) {
           try {
             const u = new SpeechSynthesisUtterance(text);
             u.lang = 'hi-IN';
             window.speechSynthesis.cancel();
             window.speechSynthesis.speak(u);
+            if (info) info.textContent = 'Speaking (fallback): ' + text;
           } catch (err) { console.error('SPEECH ERR', err); }
         }
-      });
+      };
+      audio.addEventListener('playing', () => { played = true; });
+      audio.addEventListener('error', (e) => { console.error('AUDIO ERR', e); fallback(); });
+      setTimeout(fallback, 1500);
+      audio.play().then(() => { played = true; }).catch((e) => { console.error('PLAY ERR', e); fallback(); });
     }
 
     function onSelectStartPick(event) {
@@ -636,14 +645,16 @@
       const allHits = rc.intersectObjects(scene.children, true);
       for (let i = 0; i < allHits.length; i++) {
         let o = allHits[i].object;
+        let spoken = false;
         while (o) {
           if (o.userData && o.userData.hindi) {
             speakHindi(o.userData.hindi);
+            spoken = true;
             break;
           }
           o = o.parent;
         }
-        if (i === 0) break;
+        if (spoken) break;
       }
 
       if (controllerState[controllerIndex].object) return;
