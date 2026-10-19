@@ -1734,7 +1734,7 @@
 
       if (labelSprites.length) {
         const camPos = renderer.xr.isPresenting
-          ? renderer.xr.getCamera().getWorldPosition(labelCamPos)
+          ? renderer.xr.getCamera(camera).getWorldPosition(labelCamPos)
           : camera.getWorldPosition(labelCamPos);
         labelSprites.forEach((sprite) => {
           sprite.getWorldPosition(labelTmp);
