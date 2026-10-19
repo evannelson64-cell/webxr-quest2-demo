@@ -732,6 +732,7 @@
     const clock = new THREE.Clock();
 
     renderer.setAnimationLoop(() => {
+      try {
       const delta = clock.getDelta();
 
       if (renderer.xr.isPresenting) {
@@ -786,6 +787,11 @@
        }
 
        renderer.render(scene, camera);
+      } catch (e) {
+        console.error('LOOP ERR', e);
+        const info = document.getElementById('info');
+        if (info) info.textContent = 'ERROR: ' + (e && e.message ? e.message : e);
+      }
     });
 
     // Handle window resize
