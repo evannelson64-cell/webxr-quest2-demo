@@ -206,6 +206,14 @@
       ctx.fillText(text, 128, 28);
       ctx.font = 'bold 26px "Noto Sans Devanagari", "Mangal", Arial';
       ctx.fillText(hindi, 128, 68);
+      // tiny play triangle
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.moveTo(96, 20);
+      ctx.lineTo(96, 36);
+      ctx.lineTo(110, 28);
+      ctx.closePath();
+      ctx.fill();
       const texture = new THREE.CanvasTexture(canvas);
       const spriteMat = new THREE.SpriteMaterial({ map: texture, depthTest: false, transparent: true });
       const sprite = new THREE.Sprite(spriteMat);
