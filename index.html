@@ -339,6 +339,7 @@
       const texture = new THREE.CanvasTexture(canvas);
       const spriteMat = new THREE.SpriteMaterial({ map: texture, depthTest: false, transparent: true, rotation: 0 });
       const sprite = new THREE.Sprite(spriteMat);
+      sprite.matrixAutoUpdate = false;
       sprite.scale.set(0.44, 0.165, 1);
       sprite.position.set(0, height, 0);
       sprite.userData.isPickable = false;
@@ -1748,6 +1749,7 @@
 
           const f = THREE.MathUtils.clamp(camPos.distanceTo(labelTmp) / 4, 0.62, 1.4);
           sprite.scale.set(0.44 * f, 0.165 * f, 1);
+          sprite.updateMatrix();
         });
       }
 
