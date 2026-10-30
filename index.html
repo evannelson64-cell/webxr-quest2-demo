@@ -1741,9 +1741,9 @@
 
           // Keep labels level with the world while still rotating to face the user.
           // We ignore pitch/roll by projecting the camera direction onto the XZ plane.
-          const toCamera = new THREE.Vector3().subVectors(camPos, labelTmp);
+          const toCamera = new THREE.Vector3().subVectors(labelTmp, camPos);
           toCamera.y = 0;
-          const yaw = Math.atan2(toCamera.x, toCamera.z);
+          const yaw = Math.atan2(toCamera.x, toCamera.z) + Math.PI;
           sprite.rotation.set(0, yaw, 0);
 
           const f = THREE.MathUtils.clamp(camPos.distanceTo(labelTmp) / 4, 0.62, 1.4);
