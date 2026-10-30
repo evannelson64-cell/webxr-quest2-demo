@@ -337,7 +337,7 @@
       ctx.closePath();
       ctx.fill();
       const texture = new THREE.CanvasTexture(canvas);
-      const spriteMat = new THREE.SpriteMaterial({ map: texture, depthTest: false, transparent: true });
+      const spriteMat = new THREE.SpriteMaterial({ map: texture, depthTest: false, transparent: true, rotation: 0 });
       const sprite = new THREE.Sprite(spriteMat);
       sprite.scale.set(0.44, 0.165, 1);
       sprite.position.set(0, height, 0);
