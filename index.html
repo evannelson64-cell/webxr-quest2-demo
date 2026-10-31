@@ -299,7 +299,36 @@
       'Fox': 'लोमड़ी',
       'Car': 'गाड़ी'
     };
-    const labelSprites = [];
+    const labels = [];
+    const labelGeometry = new THREE.PlaneGeometry(1, 1);
+
+    // Sprites billboard in screen space: the sprite vertex shader takes the
+    // sprite's origin into view space and offsets the quad in view-space X/Y.
+    // The sprite's quaternion / material rotation never changes which way the
+    // quad faces, so a Sprite always tilts with head pitch. Use a flat mesh and
+    // orient it ourselves with a yaw-only rotation in the frame loop.
+    function makeBillboard(texture, width, height, opts) {
+      opts = opts || {};
+      // MeshBasicMaterial is unlit like SpriteMaterial, and tone mapping stays
+      // enabled so the label brightness matches what the sprites looked like.
+      const material = new THREE.MeshBasicMaterial({
+        map: texture,
+        transparent: true,
+        depthTest: opts.depthTest !== false,
+        depthWrite: opts.depthWrite !== false,
+        side: THREE.DoubleSide
+      });
+      const mesh = new THREE.Mesh(labelGeometry, material);
+      mesh.scale.set(width, height, 1);
+      mesh.renderOrder = opts.renderOrder || 0;
+      mesh.userData.isPickable = false;
+      mesh.userData.baseScale = { x: width, y: height };
+      mesh.userData.distanceScale = opts.distanceScale !== false;
+      mesh.raycast = function () {};
+      labels.push(mesh);
+      return mesh;
+    }
+
     function addLabel(parent, text, height) {
       const hindi = HINDI[text] || text;
       parent.userData.hindi = hindi;
@@ -337,16 +366,14 @@
       ctx.closePath();
       ctx.fill();
       const texture = new THREE.CanvasTexture(canvas);
-      const spriteMat = new THREE.SpriteMaterial({ map: texture, depthTest: false, transparent: true, rotation: 0 });
-      const sprite = new THREE.Sprite(spriteMat);
-      sprite.matrixAutoUpdate = false;
-      sprite.scale.set(0.44, 0.165, 1);
-      sprite.position.set(0, height, 0);
-      sprite.userData.isPickable = false;
-      sprite.raycast = function() {};
-      parent.add(sprite);
-      labelSprites.push(sprite);
-      return sprite;
+      const label = makeBillboard(texture, 0.44, 0.165, {
+        depthTest: false,
+        depthWrite: false,
+        renderOrder: 5
+      });
+      label.position.set(0, height, 0);
+      parent.add(label);
+      return label;
     }
     // --- Refrigerator ---
     const fridgeGroup = new THREE.Group();
@@ -655,11 +682,12 @@
       c.font = 'bold 42px "Noto Sans Devanagari", "Mangal", Arial';
       c.fillText(sub, 256, 124);
       const texture = new THREE.CanvasTexture(canvas);
-      const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true }));
-      sprite.scale.set(1.15, 0.36, 1);
-      sprite.position.copy(pos);
-      sprite.raycast = function() {};
-      scene.add(sprite);
+      const sign = makeBillboard(texture, 1.15, 0.36, {
+        renderOrder: 5,
+        distanceScale: false
+      });
+      sign.position.copy(pos);
+      scene.add(sign);
     }
 
     const room2CenterX = 6.3;
@@ -1724,7 +1752,10 @@
     }
     const clock = new THREE.Clock();
     const labelCamPos = new THREE.Vector3();
-    const labelTmp = new THREE.Vector3();
+    const labelWorldPos = new THREE.Vector3();
+    const labelParentQuat = new THREE.Quaternion();
+    const labelTargetQuat = new THREE.Quaternion();
+    const labelUpAxis = new THREE.Vector3(0, 1, 0);
 
     renderer.setAnimationLoop(() => {
       try {
@@ -1733,23 +1764,31 @@
 
       animatedObjects.forEach((animate) => animate(elapsed, delta));
 
-      if (labelSprites.length) {
+      if (labels.length) {
         const camPos = renderer.xr.isPresenting
           ? renderer.xr.getCamera(camera).getWorldPosition(labelCamPos)
           : camera.getWorldPosition(labelCamPos);
-        labelSprites.forEach((sprite) => {
-          sprite.getWorldPosition(labelTmp);
+        labels.forEach((label) => {
+          label.getWorldPosition(labelWorldPos);
 
-          // Keep labels level with the world while still rotating to face the user.
-          // We ignore pitch/roll by projecting the camera direction onto the XZ plane.
-          const toCamera = new THREE.Vector3().subVectors(labelTmp, camPos);
-          toCamera.y = 0;
-          const yaw = Math.atan2(toCamera.x, toCamera.z) + Math.PI;
-          sprite.quaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+          // Yaw-only billboard: face the viewer horizontally and stay upright.
+          // Pitch and roll are discarded, so labels never tilt with the head.
+          // The plane's normal is +Z, so this yaw points it at the camera.
+          const dx = camPos.x - labelWorldPos.x;
+          const dz = camPos.z - labelWorldPos.z;
+          labelTargetQuat.setFromAxisAngle(labelUpAxis, Math.atan2(dx, dz));
 
-          const f = THREE.MathUtils.clamp(camPos.distanceTo(labelTmp) / 4, 0.62, 1.4);
-          sprite.scale.set(0.44 * f, 0.165 * f, 1);
-          sprite.updateMatrix();
+          // Labels are children of objects that can be rotated (glTF roots,
+          // controllers while an object is held), so convert the desired world
+          // rotation into the parent's local space instead of setting it directly.
+          label.parent.getWorldQuaternion(labelParentQuat);
+          label.quaternion.copy(labelParentQuat.invert().multiply(labelTargetQuat));
+
+          const base = label.userData.baseScale;
+          const f = label.userData.distanceScale
+            ? THREE.MathUtils.clamp(camPos.distanceTo(labelWorldPos) / 4, 0.62, 1.4)
+            : 1;
+          label.scale.set(base.x * f, base.y * f, 1);
         });
       }
 
