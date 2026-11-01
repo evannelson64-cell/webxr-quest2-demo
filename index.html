@@ -149,6 +149,10 @@
 
     renderer.xr.addEventListener('sessionend', () => {
       loadingEl.style.display = 'none';
+      // Drop back to normal height so the desktop view isn't left floating
+      heightOffset = 0;
+      prevFaceButtons = { x: false, y: false };
+      playerRig.position.y = 0;
       console.log('XR session ended');
     });
 
@@ -1938,6 +1942,23 @@
       return { x: 0, y: 0 };
     }
 
+    // --- NEW: Left face buttons (X / Y) for the height elevator ---
+    function getLeftFaceButtonsFromSession() {
+      const session = renderer.xr.getSession();
+      if (!session) return { x: false, y: false };
+
+      for (const inputSource of session.inputSources) {
+        if (inputSource && inputSource.handedness === 'left' && inputSource.gamepad) {
+          const b = inputSource.gamepad.buttons || [];
+          const held = (i) => !!(b[i] && (b[i].pressed || b[i].value > 0.5));
+          // xr-standard mapping on Touch: 4 = X (lower), 5 = Y (upper)
+          return { x: held(4), y: held(5) };
+        }
+      }
+
+      return { x: false, y: false };
+    }
+
     function getRightThumbstickFromSession() {
       const session = renderer.xr.getSession();
       if (!session) return { x: 0, y: 0 };
@@ -1974,6 +1995,14 @@
       return { x: 0, y: 0 };
     }
     const clock = new THREE.Clock();
+
+    // --- NEW: elevator height (Y rises, X sinks), speed * time held ---
+    let heightOffset = 0;
+    const HEIGHT_SPEED = 0.9;    // metres per second while held
+    const HEIGHT_MIN = -0.9;     // crouch limit  (eye ~0.7 m)
+    const HEIGHT_MAX = 0.7;      // stand limit   (eye ~2.3 m)
+    const HEIGHT_TAP = 0.05;     // nudge so a quick tap still registers
+    let prevFaceButtons = { x: false, y: false };
     const labelCamPos = new THREE.Vector3();
     const labelWorldPos = new THREE.Vector3();
     const labelParentQuat = new THREE.Quaternion();
@@ -2016,6 +2045,20 @@
       }
 
       if (renderer.xr.isPresenting) {
+        // Left X/Y buttons raise and lower the whole rig like an elevator.
+        const face = getLeftFaceButtonsFromSession();
+        if (face.y || face.x) {
+          const step = HEIGHT_SPEED * Math.min(delta, 0.1);
+          if (face.y) heightOffset += step + (prevFaceButtons.y ? 0 : HEIGHT_TAP);
+          if (face.x) heightOffset -= step + (prevFaceButtons.x ? 0 : HEIGHT_TAP);
+          heightOffset = THREE.MathUtils.clamp(heightOffset, HEIGHT_MIN, HEIGHT_MAX);
+          playerRig.position.y = heightOffset;
+          const eye = 1.6 + heightOffset;
+          const infoEl = document.getElementById('info');
+          if (infoEl) infoEl.textContent = 'Height ' + eye.toFixed(2) + ' m';
+        }
+        prevFaceButtons = face;
+
         const thumbstick = getLeftThumbstickFromSession();
 
         if (thumbstick.x !== 0 || thumbstick.y !== 0) {
