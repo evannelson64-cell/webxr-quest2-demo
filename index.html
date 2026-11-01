@@ -305,7 +305,64 @@
       'Pool': 'स्विमिंग पूल',
       'Pool Deck': 'पूल डेक',
       'Grill': 'ग्रिल',
-      'Dancing Man': 'नाचता आदमी'
+      'Dancing Man': 'नाचता आदमी',
+      'Toilet': 'शौचालय',
+      'Shower': 'शॉवर',
+      'Toothbrush': 'टूथब्रश',
+      'Curtain': 'पर्दा',
+      'Towel': 'तौलिया',
+      'Closet': 'अलमारी',
+      'Man': 'आदमी',
+      'Water': 'पानी',
+      'Bread': 'रोटी',
+      'Rice': 'चावल',
+      'Milk': 'दूध',
+      'Tea': 'चाय',
+      'Coffee': 'कॉफ़ी',
+      'Apple': 'सेब',
+      'Banana': 'केला',
+      'Mango': 'आम',
+      'Egg': 'अंडा',
+      'Fish': 'मछली',
+      'Vegetables': 'सब्ज़ी',
+      'Fruit': 'फल',
+      'Sweet': 'मिठाई',
+      'Salt': 'नमक',
+      'Sugar': 'चीनी',
+      'House': 'घर',
+      'Door': 'दरवाज़ा',
+      'Sky': 'आसमान',
+      'Bed': 'बिस्तर',
+      'Pillow': 'तकिया',
+      'Sheet': 'चादर',
+      'Blanket': 'कंबल',
+      'Pen': 'कलम',
+      'Paper': 'काग़ज़',
+      'Bag': 'बैग',
+      'Shirt': 'कमीज़',
+      'Pants': 'पैंट',
+      'Shoe': 'जूता',
+      'Socks': 'मोज़ा',
+      'Hat': 'टोपी',
+      'Glasses': 'चश्मा',
+      'Watch': 'घड़ी',
+      'Phone': 'फ़ोन',
+      'Computer': 'कंप्यूटर',
+      'Key': 'चाबी',
+      'Money': 'पैसा',
+      'Market': 'बाज़ार',
+      'School': 'स्कूल',
+      'Hospital': 'अस्पताल',
+      'Doctor': 'डॉक्टर',
+      'Bicycle': 'साइकिल',
+      'Tree': 'पेड़',
+      'Flower': 'फूल',
+      'Sun': 'सूरज',
+      'Moon': 'चाँद',
+      'Star': 'तारा',
+      'Rain': 'बारिश',
+      'Fire': 'आग',
+      'River': 'नदी'
     };
     const labels = [];
     const labelGeometry = new THREE.PlaneGeometry(1, 1);
@@ -825,9 +882,14 @@
     room4BackWall.position.set(room2CenterX, 1.5, -10.2);
     const room4LeftWall = new THREE.Mesh(new THREE.BoxGeometry(0.2, 3, 6.8), room4WallMat);
     room4LeftWall.position.set(2.9, 1.5, room4CenterZ);
-    const room4RightWall = new THREE.Mesh(new THREE.BoxGeometry(0.2, 3, 6.8), room4WallMat);
-    room4RightWall.position.set(9.7, 1.5, room4CenterZ);
-    [room4BackWall, room4LeftWall, room4RightWall].forEach((m) => {
+    // Right wall split for the bathroom doorway
+    const room4RightWall = new THREE.Mesh(new THREE.BoxGeometry(0.2, 3, 2.6), room4WallMat);
+    room4RightWall.position.set(9.7, 1.5, room4CenterZ - 2.1);
+    const room4RightWallB = new THREE.Mesh(new THREE.BoxGeometry(0.2, 3, 2.6), room4WallMat);
+    room4RightWallB.position.set(9.7, 1.5, room4CenterZ + 2.1);
+    const room4RightLintel = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1.0, 1.6), room4WallMat);
+    room4RightLintel.position.set(9.7, 2.5, room4CenterZ);
+    [room4BackWall, room4LeftWall, room4RightWall, room4RightWallB, room4RightLintel].forEach((m) => {
       m.receiveShadow = true;
       m.castShadow = true;
       m.userData.isEnvironment = true;
@@ -959,10 +1021,15 @@
 
     // Perimeter walls (open-air room)
     const room5WallMat = new THREE.MeshStandardMaterial({ color: 0xf0e6d8, roughness: 0.9 });
-    const room5FarWall = createBox(0.2, 2.8, 8.0, 0xffffff, { x: 24.0, y: 1.4, z: 0 });
-    const room5SideWallN = createBox(7.5, 2.8, 0.2, 0xffffff, { x: 20.25, y: 1.4, z: -4.0 });
+    const room5FarWall = createBox(0.2, 2.8, 3.4, 0xffffff, { x: 24.0, y: 1.4, z: -2.3 });
+    const room5FarWallB = createBox(0.2, 2.8, 3.4, 0xffffff, { x: 24.0, y: 1.4, z: 2.3 });
+    const room5FarLintel = createBox(0.2, 1.0, 1.6, 0xffffff, { x: 24.0, y: 2.3, z: 0 });
+    const room5SideWallN = createBox(2.9, 2.8, 0.2, 0xffffff, { x: 18.2, y: 1.4, z: -4.0 });
+    const room5SideWallNB = createBox(2.9, 2.8, 0.2, 0xffffff, { x: 22.3, y: 1.4, z: -4.0 });
+    const room5SideWallNLintel = createBox(1.6, 1.0, 0.2, 0xffffff, { x: 20.25, y: 2.3, z: -4.0 });
     const room5SideWallS = createBox(7.5, 2.8, 0.2, 0xffffff, { x: 20.25, y: 1.4, z: 4.0 });
-    [room5FarWall, room5SideWallN, room5SideWallS].forEach((w) => {
+    [room5FarWall, room5FarWallB, room5FarLintel, room5SideWallN, room5SideWallNB,
+      room5SideWallNLintel, room5SideWallS].forEach((w) => {
       w.material = room5WallMat;
       poolArea.add(w);
     });
@@ -1050,6 +1117,387 @@
       waterTexture.offset.x = (t * 0.03) % 1;
       waterTexture.offset.y = (Math.sin(t * 0.7) * 0.05) % 1;
     });
+
+    // ============================================================
+    // --- Room 6: Bathroom (tiled) ---
+    // ============================================================
+    const bathCX = 13.1;
+    const bathCZ = -6.8;
+
+    const tileTexture = makeCanvasTexture(256, (ctx, w, h) => {
+      ctx.fillStyle = '#eef6f9';
+      ctx.fillRect(0, 0, w, h);
+      for (let y = 0; y < h; y += 64) {
+        for (let x = 0; x < w; x += 64) {
+          ctx.fillStyle = ((x / 64 + y / 64) % 2 === 0) ? '#d7e6ee' : '#eaf4f8';
+          ctx.fillRect(x + 2, y + 2, 60, 60);
+        }
+      }
+      ctx.strokeStyle = 'rgba(150, 172, 184, 0.7)';
+      ctx.lineWidth = 2;
+      for (let i = 0; i <= w; i += 64) {
+        ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, h); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(w, i); ctx.stroke();
+      }
+    }, 4, 4);
+
+    const tileMat = new THREE.MeshStandardMaterial({ map: tileTexture, roughness: 0.4 });
+    const bathFloor = new THREE.Mesh(new THREE.PlaneGeometry(6.8, 6.8), tileMat);
+    bathFloor.rotation.x = -Math.PI / 2;
+    bathFloor.position.set(bathCX, 0.004, bathCZ);
+    bathFloor.receiveShadow = true;
+    bathFloor.userData.isEnvironment = true;
+    scene.add(bathFloor);
+
+    const bathBack = createBox(6.8, 3, 0.2, 0xffffff, { x: bathCX, y: 1.5, z: -10.2 });
+    const bathRight = createBox(0.2, 3, 6.8, 0xffffff, { x: 16.5, y: 1.5, z: bathCZ });
+    const bathFront = createBox(6.8, 3, 0.2, 0xffffff, { x: bathCX, y: 1.5, z: -3.4 });
+    [bathBack, bathRight, bathFront].forEach((w) => {
+      w.material = tileMat;
+      w.userData.isEnvironment = true;
+      scene.add(w);
+    });
+
+    const bathLight = new THREE.PointLight(0xfff4e0, 0.55, 8);
+    bathLight.position.set(bathCX, 2.5, bathCZ);
+    scene.add(bathLight);
+
+    const toilet = new THREE.Group();
+    toilet.position.set(14.9, 0, -9.3);
+    toilet.add(createBox(0.42, 0.45, 0.6, 0xf4f6f7, { x: 0, y: 0.22, z: 0 }));
+    toilet.add(createCylinder(0.22, 0.2, 0.18, 20, 0xffffff, { x: 0, y: 0.53, z: 0 }));
+    toilet.add(createBox(0.42, 0.55, 0.18, 0xf4f6f7, { x: 0, y: 0.62, z: -0.34 }));
+    toilet.add(createBox(0.2, 0.03, 0.2, 0xdfe6ea, { x: 0, y: 0.93, z: -0.34 }));
+    addRoomEnvironment(toilet);
+    addLabel(toilet, 'Toilet', 1.15);
+
+    const shower = new THREE.Group();
+    shower.position.set(11.2, 0, -9.2);
+    shower.add(createBox(1.7, 0.1, 1.5, 0xdce8ee, { x: 0, y: 0.05, z: 0 }));
+    const glassMat = new THREE.MeshStandardMaterial({
+      color: 0xcfe9f2, transparent: true, opacity: 0.28, roughness: 0.05, side: THREE.DoubleSide
+    });
+    const showerGlass = new THREE.Mesh(new THREE.BoxGeometry(0.05, 2.0, 1.5), glassMat);
+    showerGlass.position.set(0.85, 1.05, 0);
+    shower.add(showerGlass);
+    shower.add(createBox(0.06, 0.06, 0.5, 0x9aa6ad, { x: -0.6, y: 2.15, z: 0 }));
+    shower.add(createCylinder(0.14, 0.14, 0.06, 16, 0x9aa6ad, { x: -0.6, y: 2.1, z: 0 }));
+    addRoomEnvironment(shower);
+    addLabel(shower, 'Shower', 2.35);
+
+    const curtainTexture = makeCanvasTexture(128, (ctx, w, h) => {
+      ctx.fillStyle = '#f2f7fa';
+      ctx.fillRect(0, 0, w, h);
+      for (let x = 0; x < w; x += 24) {
+        ctx.fillStyle = 'rgba(120, 175, 205, 0.55)';
+        ctx.fillRect(x + 10, 0, 12, h);
+      }
+    }, 2, 1);
+    const curtain = new THREE.Mesh(
+      new THREE.PlaneGeometry(1.6, 2.0),
+      new THREE.MeshStandardMaterial({ map: curtainTexture, roughness: 0.9, side: THREE.DoubleSide })
+    );
+    curtain.position.set(11.2, 1.15, -8.42);
+    curtain.userData.isEnvironment = true;
+    scene.add(curtain);
+    addLabel(curtain, 'Curtain', 1.15);
+
+    const sinkGroup = new THREE.Group();
+    sinkGroup.position.set(15.6, 0, -5.4);
+    sinkGroup.add(createCylinder(0.16, 0.2, 0.72, 16, 0xe9eef1, { x: 0, y: 0.36, z: 0 }));
+    sinkGroup.add(createCylinder(0.42, 0.34, 0.22, 24, 0xffffff, { x: 0, y: 0.82, z: 0 }));
+    sinkGroup.add(createCylinder(0.03, 0.03, 0.22, 10, 0xb9c2c7, { x: 0, y: 0.98, z: -0.22 }));
+    sinkGroup.add(createBox(0.16, 0.04, 0.16, 0xdfe6ea, { x: 0, y: 1.1, z: -0.22 }));
+    addRoomEnvironment(sinkGroup);
+    addLabel(sinkGroup, 'Sink', 1.35);
+
+    const mirror = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.8, 0.9),
+      new THREE.MeshStandardMaterial({ color: 0xdfeaf2, metalness: 0.9, roughness: 0.08 })
+    );
+    mirror.position.set(15.6, 1.75, -5.02);
+    mirror.rotation.y = Math.PI;
+    mirror.userData.isEnvironment = true;
+    scene.add(mirror);
+
+    const brushGroup = new THREE.Group();
+    brushGroup.position.set(15.35, 0.93, -5.35);
+    brushGroup.add(createCylinder(0.05, 0.045, 0.12, 12, 0xd9e2e7, { x: 0, y: 0, z: 0 }));
+    brushGroup.add(createBox(0.02, 0.24, 0.02, 0x2f7fd0, { x: 0, y: 0.16, z: 0 }));
+    brushGroup.add(createBox(0.03, 0.06, 0.02, 0xffffff, { x: 0, y: 0.3, z: 0 }));
+    addRoomPickable(brushGroup);
+    addLabel(brushGroup, 'Toothbrush', 0.6);
+
+    const towel = createBox(0.5, 0.5, 0.04, 0xf6d6d6, { x: 12.7, y: 1.25, z: -8.3 });
+    addRoomEnvironment(towel);
+    addLabel(towel, 'Towel', 0.4);
+
+    addRoomSign('Room 6', 'छठा कमरा', new THREE.Vector3(9.75, 2.2, -6.8));
+
+    // ============================================================
+    // --- Room 7: Bedroom, closet and stairs ---
+    // ============================================================
+    const bedCX = 20.25;
+    const bedCZ = -7.4;
+
+    const bedFloorMat = new THREE.MeshStandardMaterial({ color: 0x8d6e52, roughness: 0.85 });
+    const bedFloor = new THREE.Mesh(new THREE.PlaneGeometry(6.8, 6.8), bedFloorMat);
+    bedFloor.rotation.x = -Math.PI / 2;
+    bedFloor.position.set(bedCX, 0.004, bedCZ);
+    bedFloor.receiveShadow = true;
+    bedFloor.userData.isEnvironment = true;
+    scene.add(bedFloor);
+
+    const bedWallMat = new THREE.MeshStandardMaterial({ color: 0xd9c7ae, roughness: 0.9 });
+    const bedSouth = createBox(6.8, 3, 0.2, 0xffffff, { x: bedCX, y: 1.5, z: -10.8 });
+    const bedEast = createBox(0.2, 3, 6.8, 0xffffff, { x: 23.65, y: 1.5, z: bedCZ });
+    [bedSouth, bedEast].forEach((w) => {
+      w.material = bedWallMat;
+      w.userData.isEnvironment = true;
+      scene.add(w);
+    });
+
+    const bedLight = new THREE.PointLight(0xffe6c0, 0.55, 9);
+    bedLight.position.set(bedCX, 2.5, bedCZ);
+    scene.add(bedLight);
+
+    // --- Stairs + landing along the west wall (walkable) ---
+    const stairMat = new THREE.MeshStandardMaterial({ color: 0x9a7a58, roughness: 0.8 });
+    const STAIR_X0 = 16.95;
+    const STAIR_X1 = 18.15;
+    const STAIR_Z0 = -10.5;
+    const STAIR_Z1 = -7.1;
+    const STAIR_TOP = 2.2;
+    const STEPS = 12;
+    const stepDepth = (STAIR_Z1 - STAIR_Z0) / STEPS;
+    for (let i = 0; i < STEPS; i++) {
+      const h = (i + 1) * (STAIR_TOP / STEPS);
+      const step = createBox(STAIR_X1 - STAIR_X0, h, stepDepth + 0.02, 0xffffff, {
+        x: (STAIR_X0 + STAIR_X1) / 2,
+        y: h / 2,
+        z: STAIR_Z0 + stepDepth * (i + 0.5)
+      });
+      step.material = stairMat;
+      step.userData.isEnvironment = true;
+      scene.add(step);
+    }
+    const landing = createBox(STAIR_X1 - STAIR_X0, 0.12, 2.9, 0xffffff, {
+      x: (STAIR_X0 + STAIR_X1) / 2, y: STAIR_TOP - 0.06, z: -5.65
+    });
+    landing.material = stairMat;
+    landing.userData.isEnvironment = true;
+    scene.add(landing);
+
+    // simple railing
+    for (let i = 0; i <= 6; i++) {
+      const t = i / 6;
+      const z = STAIR_Z0 + (STAIR_Z1 - STAIR_Z0) * t;
+      const y = STAIR_TOP * t + 0.9;
+      const post = createCylinder(0.03, 0.03, 0.9, 8, 0x5c4630, { x: STAIR_X1 - 0.05, y: y - 0.45, z });
+      post.userData.isEnvironment = true;
+      scene.add(post);
+    }
+
+    // --- Closet ---
+    const closet = new THREE.Group();
+    closet.position.set(22.6, 0, -9.4);
+    const closetMat = 0x7d5a3a;
+    closet.add(createBox(2.0, 2.2, 0.06, closetMat, { x: 0, y: 1.1, z: -0.55 }));
+    closet.add(createBox(0.06, 2.2, 1.1, closetMat, { x: -0.97, y: 1.1, z: 0 }));
+    closet.add(createBox(0.06, 2.2, 1.1, closetMat, { x: 0.97, y: 1.1, z: 0 }));
+    closet.add(createBox(2.0, 0.06, 1.1, closetMat, { x: 0, y: 2.2, z: 0 }));
+    closet.add(createCylinder(0.02, 0.02, 1.8, 8, 0xcfcfcf, { x: 0, y: 1.9, z: 0.1 }, { x: 0, y: 0, z: Math.PI / 2 }));
+    addRoomEnvironment(closet);
+    addLabel(closet, 'Closet', 2.5);
+
+    const shirt = createBox(0.5, 0.6, 0.12, 0x53b7a6, { x: -0.55, y: 1.55, z: 0.1 });
+    const pants = createBox(0.4, 0.7, 0.12, 0x3a4a6b, { x: 0.15, y: 1.5, z: 0.1 });
+    const socks = createCylinder(0.06, 0.06, 0.2, 10, 0xf2f2f2, { x: 0.7, y: 1.62, z: 0.1 });
+    closet.add(shirt, pants, socks);
+    addLabel(shirt, 'Shirt', 0.55);
+    addLabel(pants, 'Pants', 0.55);
+    addLabel(socks, 'Socks', 0.4);
+
+    // --- Man putting on a shirt ---
+    const man = new THREE.Group();
+    man.position.set(20.3, 0, -5.9);
+    const SKIN2 = 0xb07a52;
+    const pantCol = 0x33415e;
+    man.add(createBox(0.42, 0.55, 0.24, 0xc9b8a4, { x: 0, y: 1.12, z: 0 }));
+    man.add(createBox(0.26, 0.28, 0.26, SKIN2, { x: 0, y: 1.56, z: 0 }));
+    man.add(createBox(0.38, 0.22, 0.24, pantCol, { x: 0, y: 0.78, z: 0 }));
+    const mArmL = makeLimb(0.12, 0.6, 0.12, SKIN2, -0.27, 1.34);
+    const mArmR = makeLimb(0.12, 0.6, 0.12, SKIN2, 0.27, 1.34);
+    const mLegL = makeLimb(0.14, 0.72, 0.14, pantCol, -0.11, 0.72);
+    const mLegR = makeLimb(0.14, 0.72, 0.14, pantCol, 0.11, 0.72);
+    man.add(mArmL, mArmR, mLegL, mLegR);
+    const wornShirt = createBox(0.5, 0.6, 0.3, 0x53b7a6, { x: 0, y: 1.15, z: 0 });
+    man.add(wornShirt);
+    addRoomPickable(man);
+    addLabel(man, 'Man', 2.0);
+
+    animatedObjects.push((t) => {
+      if (man.parent !== scene) return;
+      // shirt slides up over the torso, arms wave overhead like "SOS"
+      wornShirt.position.y = 1.15 + Math.sin(t * 1.4) * 0.28;
+      const wave = 2.2 + Math.sin(t * 3.4) * 0.35;
+      mArmL.rotation.z = wave;
+      mArmR.rotation.z = -wave;
+      man.rotation.y = Math.sin(t * 0.6) * 0.25;
+    });
+
+    // Walkable height from stairs and landing (smoothly followed in the frame loop)
+    const walkPlatforms = [
+      { x0: STAIR_X0, x1: STAIR_X1, z0: STAIR_Z0, z1: STAIR_Z1, h0: 0, h1: STAIR_TOP, axis: 'z' },
+      { x0: STAIR_X0, x1: STAIR_X1, z0: -7.1, z1: -4.2, h0: STAIR_TOP, h1: STAIR_TOP, axis: 'z' }
+    ];
+
+    function platformHeightAt(x, z) {
+      let best = 0;
+      for (const p of walkPlatforms) {
+        if (x < p.x0 || x > p.x1 || z < p.z0 || z > p.z1) continue;
+        const t = p.axis === 'z'
+          ? (z - p.z0) / (p.z1 - p.z0)
+          : (x - p.x0) / (p.x1 - p.x0);
+        const hgt = p.h0 + (p.h1 - p.h0) * Math.min(Math.max(t, 0), 1);
+        if (hgt > best) best = hgt;
+      }
+      return best;
+    }
+
+    addRoomSign('Room 7', 'सातवाँ कमरा', new THREE.Vector3(20.25, 2.2, -4.05));
+
+    // ============================================================
+    // --- Room 8: Word Rotunda (round room, 50+ nouns) ---
+    // ============================================================
+    const rotCX = 28.9;
+    const rotCZ = 0;
+    const ROT_R = 4.8;
+
+    const rotFloor = new THREE.Mesh(
+      new THREE.CircleGeometry(ROT_R, 48),
+      new THREE.MeshStandardMaterial({ color: 0x5f6f7f, roughness: 0.75 })
+    );
+    rotFloor.rotation.x = -Math.PI / 2;
+    rotFloor.position.set(rotCX, 0.004, rotCZ);
+    rotFloor.userData.isEnvironment = true;
+    scene.add(rotFloor);
+
+    const rotWall = new THREE.Mesh(
+      new THREE.CylinderGeometry(ROT_R, ROT_R, 3.4, 64, 1, true, Math.PI * 1.58, Math.PI * 1.84),
+      new THREE.MeshStandardMaterial({ color: 0xe8e2d6, roughness: 0.9, side: THREE.BackSide })
+    );
+    rotWall.position.set(rotCX, 1.7, rotCZ);
+    rotWall.userData.isEnvironment = true;
+    scene.add(rotWall);
+
+    const rotCeiling = new THREE.Mesh(
+      new THREE.CircleGeometry(ROT_R, 48),
+      new THREE.MeshStandardMaterial({ color: 0xdfe6ee, roughness: 0.9, side: THREE.DoubleSide })
+    );
+    rotCeiling.rotation.x = Math.PI / 2;
+    rotCeiling.position.set(rotCX, 3.4, rotCZ);
+    rotCeiling.userData.isEnvironment = true;
+    scene.add(rotCeiling);
+
+    const rotLight = new THREE.PointLight(0xfff3d6, 0.7, 16);
+    rotLight.position.set(rotCX, 3.0, rotCZ);
+    scene.add(rotLight);
+
+    function makeWordShape(kind, color, p) {
+      let geo;
+      if (kind === 'b') geo = new THREE.BoxGeometry(p[0], p[1], p[2] || p[0]);
+      else if (kind === 'c') geo = new THREE.CylinderGeometry(p[0], p[0], p[1], 14);
+      else if (kind === 's') geo = new THREE.SphereGeometry(p[0], 14, 10);
+      else geo = new THREE.ConeGeometry(p[0], p[1], 14);
+      const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({
+        color, roughness: 0.55, flatShading: true
+      }));
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      return mesh;
+    }
+
+    // 51 everyday Hindi nouns: [English, Hindi, shape, colour, dimensions]
+    const WORDS = [
+      ['Water', 'पानी', 'c', 0x4aa3d8, [0.16, 0.3]],
+      ['Bread', 'रोटी', 'b', 0xc99a5b, [0.4, 0.18, 0.26]],
+      ['Rice', 'चावल', 'c', 0xf2f2f2, [0.22, 0.12]],
+      ['Milk', 'दूध', 'b', 0xf7f7f7, [0.16, 0.32, 0.16]],
+      ['Tea', 'चाय', 'c', 0x9b5b2a, [0.11, 0.16]],
+      ['Coffee', 'कॉफ़ी', 'c', 0x5a3a22, [0.12, 0.18]],
+      ['Apple', 'सेब', 's', 0xd43b3b, [0.14]],
+      ['Banana', 'केला', 'c', 0xf2d64b, [0.06, 0.3]],
+      ['Mango', 'आम', 's', 0xf0a020, [0.15]],
+      ['Egg', 'अंडा', 's', 0xf5efdc, [0.12]],
+      ['Fish', 'मछली', 'b', 0x7fb3c8, [0.42, 0.16, 0.12]],
+      ['Vegetables', 'सब्ज़ी', 'c', 0x4f8b3b, [0.2, 0.16]],
+      ['Fruit', 'फल', 's', 0xe2572e, [0.16]],
+      ['Sweet', 'मिठाई', 'b', 0xe8c26a, [0.24, 0.12, 0.24]],
+      ['Salt', 'नमक', 'b', 0xf0f0f0, [0.18, 0.2, 0.18]],
+      ['Sugar', 'चीनी', 'b', 0xf7f7f2, [0.18, 0.2, 0.18]],
+      ['House', 'घर', 'b', 0xc98d5a, [0.36, 0.3, 0.32]],
+      ['Door', 'दरवाज़ा', 'b', 0x8a5a33, [0.34, 0.5, 0.06]],
+      ['Sky', 'आसमान', 's', 0x7fb8e8, [0.3]],
+      ['Bed', 'बिस्तर', 'b', 0x9a7b5c, [0.6, 0.2, 0.42]],
+      ['Pillow', 'तकिया', 'b', 0xf0ece2, [0.3, 0.12, 0.2]],
+      ['Sheet', 'चादर', 'b', 0xdfe8f0, [0.5, 0.02, 0.4]],
+      ['Blanket', 'कंबल', 'b', 0xa8524a, [0.5, 0.08, 0.4]],
+      ['Pen', 'कलम', 'c', 0x2f5fa8, [0.02, 0.26]],
+      ['Paper', 'काग़ज़', 'b', 0xfbfbf7, [0.28, 0.01, 0.36]],
+      ['Bag', 'बैग', 'b', 0x6b4a2f, [0.3, 0.34, 0.18]],
+      ['Shirt', 'कमीज़', 'b', 0x53b7a6, [0.36, 0.4, 0.1]],
+      ['Pants', 'पैंट', 'b', 0x3a4a6b, [0.28, 0.44, 0.1]],
+      ['Shoe', 'जूता', 'b', 0x33383d, [0.32, 0.12, 0.14]],
+      ['Socks', 'मोज़ा', 'c', 0xf2f2f2, [0.05, 0.18]],
+      ['Hat', 'टोपी', 'c', 0x8a6fb0, [0.16, 0.14]],
+      ['Glasses', 'चश्मा', 'b', 0x222222, [0.3, 0.06, 0.03]],
+      ['Watch', 'घड़ी', 'c', 0xcfd6da, [0.09, 0.04]],
+      ['Phone', 'फ़ोन', 'b', 0x1c1f24, [0.09, 0.18, 0.02]],
+      ['Computer', 'कंप्यूटर', 'b', 0x2b3038, [0.4, 0.26, 0.05]],
+      ['Key', 'चाबी', 'b', 0xd9b45a, [0.16, 0.04, 0.02]],
+      ['Money', 'पैसा', 'b', 0x4f7f52, [0.24, 0.01, 0.12]],
+      ['Market', 'बाज़ार', 'b', 0xd08a4a, [0.4, 0.26, 0.3]],
+      ['School', 'स्कूल', 'b', 0xd8c06a, [0.42, 0.3, 0.3]],
+      ['Hospital', 'अस्पताल', 'b', 0xe8eef2, [0.42, 0.3, 0.3]],
+      ['Doctor', 'डॉक्टर', 'c', 0xf0f0f0, [0.12, 0.4]],
+      ['Bicycle', 'साइकिल', 'b', 0x2f3f52, [0.4, 0.24, 0.05]],
+      ['Tree', 'पेड़', 'c', 0x4f7c3a, [0.06, 0.5]],
+      ['Flower', 'फूल', 's', 0xe86a8a, [0.12]],
+      ['Sun', 'सूरज', 's', 0xf2c94c, [0.24]],
+      ['Moon', 'चाँद', 's', 0xd8dde6, [0.2]],
+      ['Star', 'तारा', 'k', 0xf5e27a, [0.14, 0.2]],
+      ['Rain', 'बारिश', 'c', 0x8fb8d8, [0.14, 0.02]],
+      ['Fire', 'आग', 'k', 0xe8683a, [0.14, 0.26]],
+      ['River', 'नदी', 'b', 0x3f7fa8, [0.6, 0.02, 0.3]]
+    ];
+
+    const pedestalMat = new THREE.MeshStandardMaterial({ color: 0x6d5c4a, roughness: 0.85 });
+    WORDS.forEach((w, i) => {
+      const inner = i < 17;
+      const count = inner ? 17 : WORDS.length - 17;
+      const idx = inner ? i : i - 17;
+      const radius = inner ? 2.0 : 3.55;
+      const ang = (idx / count) * Math.PI * 2 + (inner ? 0.3 : 0);
+      const g = new THREE.Group();
+      g.position.set(rotCX + Math.cos(ang) * radius, 0, rotCZ + Math.sin(ang) * radius);
+
+      const ped = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.24, 0.6, 12), pedestalMat);
+      ped.position.y = 0.3;
+      ped.castShadow = true;
+      ped.receiveShadow = true;
+      g.add(ped);
+
+      const shape = makeWordShape(w[2], w[3], w[4]);
+      const half = w[2] === 's' ? w[4][0] : (w[4][1] || 0.2) / 2;
+      shape.position.y = 0.6 + half;
+      g.add(shape);
+
+      addRoomPickable(g);
+      addLabel(g, w[0], 1.25);
+    });
+
+    addRoomSign('Room 8', 'आठवाँ कमरा', new THREE.Vector3(24.3, 2.4, 0));
 
     // --- Imported high-poly glTF assets ---
     function placeGLTF(name, opts) {
@@ -1745,13 +2193,23 @@
       return audioCtx;
     }
 
+    function slugifyLabel(label) {
+      return String(label).toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+    }
+
+    // Explicit entries win; otherwise fall back to audio/<slug>.mp3 so new
+    // vocabulary only needs a file, not a mapping line.
+    function audioUrlFor(label) {
+      return AUDIO_CLIPS[label] || ('audio/' + slugifyLabel(label) + '.mp3');
+    }
+
     function loadAudioClips() {
       if (audioLoadPromise) return audioLoadPromise;
       const ctx = getAudioContext();
       if (!ctx) return Promise.resolve();
-      audioLoadPromise = Promise.all(Object.keys(AUDIO_CLIPS).map(async (label) => {
+      audioLoadPromise = Promise.all(Object.keys(HINDI).map(async (label) => {
         try {
-          const res = await fetch(AUDIO_CLIPS[label]);
+          const res = await fetch(audioUrlFor(label));
           if (!res.ok) throw new Error('HTTP ' + res.status);
           const data = await res.arrayBuffer();
           audioBuffers[label] = await ctx.decodeAudioData(data);
@@ -2052,8 +2510,7 @@
           if (face.y) heightOffset += step + (prevFaceButtons.y ? 0 : HEIGHT_TAP);
           if (face.x) heightOffset -= step + (prevFaceButtons.x ? 0 : HEIGHT_TAP);
           heightOffset = THREE.MathUtils.clamp(heightOffset, HEIGHT_MIN, HEIGHT_MAX);
-          playerRig.position.y = heightOffset;
-          const eye = 1.6 + heightOffset;
+          const eye = 1.6 + platformHeightAt(playerRig.position.x, playerRig.position.z) + heightOffset;
           const infoEl = document.getElementById('info');
           if (infoEl) infoEl.textContent = 'Height ' + eye.toFixed(2) + ' m';
         }
@@ -2088,6 +2545,11 @@
         }
         playerRig.rotation.z = 0;
       }
+
+      // Follow the walking surface (stairs / landing) plus the elevator offset
+      const surfaceY = platformHeightAt(playerRig.position.x, playerRig.position.z);
+      const targetRigY = surfaceY + heightOffset;
+      playerRig.position.y += (targetRigY - playerRig.position.y) * Math.min(1, delta * 8);
 
        // Tether return animation
        for (let i = returningObjects.length - 1; i >= 0; i--) {
