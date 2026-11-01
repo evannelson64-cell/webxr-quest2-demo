@@ -297,7 +297,11 @@
       'Dragon': 'ड्रैगन',
       'Duck': 'बत्तख',
       'Fox': 'लोमड़ी',
-      'Car': 'गाड़ी'
+      'Car': 'गाड़ी',
+      'Pool': 'स्विमिंग पूल',
+      'Pool Deck': 'पूल डेक',
+      'Grill': 'ग्रिल',
+      'Dancing Man': 'नाचता आदमी'
     };
     const labels = [];
     const labelGeometry = new THREE.PlaneGeometry(1, 1);
@@ -765,9 +769,14 @@
     room3BackWall.position.set(room3CenterX, 1.5, -3.4);
     const room3FrontWall = new THREE.Mesh(new THREE.BoxGeometry(6.8, 3, 0.2), room3WallMat);
     room3FrontWall.position.set(room3CenterX, 1.5, 3.4);
-    const room3RightWall = new THREE.Mesh(new THREE.BoxGeometry(0.2, 3, 6.8), room3WallMat);
-    room3RightWall.position.set(16.5, 1.5, 0);
-    [room3BackWall, room3FrontWall, room3RightWall].forEach((m) => {
+    // Right wall split to leave a doorway through to the pool deck
+    const room3RightWall = new THREE.Mesh(new THREE.BoxGeometry(0.2, 3, 2.6), room3WallMat);
+    room3RightWall.position.set(16.5, 1.5, -2.1);
+    const room3RightWallB = new THREE.Mesh(new THREE.BoxGeometry(0.2, 3, 2.6), room3WallMat);
+    room3RightWallB.position.set(16.5, 1.5, 2.1);
+    const room3RightLintel = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1.0, 1.6), room3WallMat);
+    room3RightLintel.position.set(16.5, 2.5, 0);
+    [room3BackWall, room3FrontWall, room3RightWall, room3RightWallB, room3RightLintel].forEach((m) => {
       m.receiveShadow = true;
       m.castShadow = true;
       m.userData.isEnvironment = true;
@@ -829,6 +838,214 @@
     addRoomEnvironment(galleryRug);
     const galleryRug2 = createBox(2.6, 0.02, 2.2, 0x5b4636, { x: 8.0, y: 0.022, z: -8.2 });
     addRoomEnvironment(galleryRug2);
+
+    // ============================================================
+    // --- Room 5: Pool Deck ---
+    // ============================================================
+    function makeCanvasTexture(size, drawFn, repeatX, repeatY) {
+      const c = document.createElement('canvas');
+      c.width = size;
+      c.height = size;
+      drawFn(c.getContext('2d'), size, size);
+      const tex = new THREE.CanvasTexture(c);
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      tex.repeat.set(repeatX || 1, repeatY || 1);
+      return tex;
+    }
+
+    // Deck: weathered planks drawn procedurally, so no binary assets needed.
+    const deckTexture = makeCanvasTexture(256, (ctx, w, h) => {
+      ctx.fillStyle = '#b9a68a';
+      ctx.fillRect(0, 0, w, h);
+      const plank = 32;
+      for (let y = 0; y < h; y += plank) {
+        const shade = 0.86 + Math.random() * 0.2;
+        ctx.fillStyle = 'rgb(' + Math.floor(150 * shade) + ',' + Math.floor(130 * shade) + ',' + Math.floor(104 * shade) + ')';
+        ctx.fillRect(0, y + 1, w, plank - 2);
+        ctx.strokeStyle = 'rgba(90, 74, 54, 0.55)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, y + 0.5);
+        ctx.lineTo(w, y + 0.5);
+        ctx.stroke();
+        ctx.strokeStyle = 'rgba(120, 100, 76, 0.25)';
+        for (let g = 0; g < 3; g++) {
+          const gy = y + 6 + Math.random() * (plank - 12);
+          ctx.beginPath();
+          ctx.moveTo(0, gy);
+          ctx.bezierCurveTo(w * 0.33, gy + 3, w * 0.66, gy - 3, w, gy + 1);
+          ctx.stroke();
+        }
+      }
+    }, 6, 6);
+
+    // Water: gradient plus caustic arcs, scrolled in the frame loop.
+    const waterTexture = makeCanvasTexture(256, (ctx, w, h) => {
+      const g = ctx.createLinearGradient(0, 0, w, h);
+      g.addColorStop(0, '#2b86b5');
+      g.addColorStop(0.5, '#3aa6d4');
+      g.addColorStop(1, '#1f6f96');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, w, h);
+      ctx.strokeStyle = 'rgba(190, 235, 255, 0.5)';
+      ctx.lineWidth = 2;
+      for (let i = 0; i < 26; i++) {
+        ctx.beginPath();
+        ctx.arc(Math.random() * w, Math.random() * h, 6 + Math.random() * 26,
+          Math.PI * (0.15 + Math.random() * 0.5), Math.PI * (0.55 + Math.random() * 0.5));
+        ctx.stroke();
+      }
+    }, 3, 2);
+
+    const poolDeckMat = new THREE.MeshStandardMaterial({ map: deckTexture, roughness: 0.9 });
+    const poolTileMat = new THREE.MeshStandardMaterial({ color: 0xe8f6fb, roughness: 0.35 });
+    const poolWaterMat = new THREE.MeshStandardMaterial({
+      map: waterTexture,
+      roughness: 0.15,
+      metalness: 0.1,
+      transparent: true,
+      opacity: 0.88
+    });
+
+    const poolArea = new THREE.Group();
+
+    // Deck slabs framing the pool (Box so the edges read as a real deck)
+    [
+      { w: 7.5, d: 2.6, x: 20.25, z: -2.7 },
+      { w: 7.5, d: 2.2, x: 20.25, z: 2.9 },
+      { w: 1.5, d: 3.2, x: 17.25, z: 0.2 },
+      { w: 1.6, d: 3.2, x: 23.2, z: 0.2 }
+    ].forEach((s) => {
+      const slab = createBox(s.w, 0.12, s.d, 0xffffff, { x: s.x, y: -0.06, z: s.z });
+      slab.material = poolDeckMat;
+      slab.receiveShadow = true;
+      poolArea.add(slab);
+    });
+
+    // Pool basin
+    const poolFloor = new THREE.Mesh(new THREE.PlaneGeometry(4.4, 3.2), poolTileMat);
+    poolFloor.rotation.x = -Math.PI / 2;
+    poolFloor.position.set(20.2, -1.35, 0.2);
+    poolArea.add(poolFloor);
+
+    [
+      { w: 4.6, d: 0.1, x: 20.2, z: -1.4 },
+      { w: 4.6, d: 0.1, x: 20.2, z: 1.8 },
+      { w: 0.1, d: 3.2, x: 17.95, z: 0.2 },
+      { w: 0.1, d: 3.2, x: 22.45, z: 0.2 }
+    ].forEach((b) => {
+      const wall = createBox(b.w, 1.35, b.d, 0xe8f6fb, { x: b.x, y: -0.675, z: b.z });
+      wall.material = poolTileMat;
+      poolArea.add(wall);
+    });
+
+    const poolWater = new THREE.Mesh(new THREE.PlaneGeometry(4.4, 3.2), poolWaterMat);
+    poolWater.rotation.x = -Math.PI / 2;
+    poolWater.position.set(20.2, -0.12, 0.2);
+    poolArea.add(poolWater);
+
+    // Coping stones around the water
+    const copingMat = new THREE.MeshStandardMaterial({ color: 0xf2efe6, roughness: 0.8 });
+    [[20.2, -1.52, 4.9, 0.24], [20.2, 1.92, 4.9, 0.24]].forEach((c) => {
+      const strip = createBox(c[2], 0.14, c[3], 0xffffff, { x: c[0], y: 0.01, z: c[1] });
+      strip.material = copingMat;
+      poolArea.add(strip);
+    });
+
+    // Perimeter walls (open-air room)
+    const room5WallMat = new THREE.MeshStandardMaterial({ color: 0xf0e6d8, roughness: 0.9 });
+    const room5FarWall = createBox(0.2, 2.8, 8.0, 0xffffff, { x: 24.0, y: 1.4, z: 0 });
+    const room5SideWallN = createBox(7.5, 2.8, 0.2, 0xffffff, { x: 20.25, y: 1.4, z: -4.0 });
+    const room5SideWallS = createBox(7.5, 2.8, 0.2, 0xffffff, { x: 20.25, y: 1.4, z: 4.0 });
+    [room5FarWall, room5SideWallN, room5SideWallS].forEach((w) => {
+      w.material = room5WallMat;
+      poolArea.add(w);
+    });
+
+    // Everything in the pool area is scenery, not grabbable
+    poolArea.traverse((c) => {
+      c.userData.isEnvironment = true;
+      c.userData.isPickable = false;
+    });
+    scene.add(poolArea);
+
+    const poolLight = new THREE.PointLight(0xfff0cf, 0.6, 14);
+    poolLight.position.set(20.2, 3.6, 0.4);
+    scene.add(poolLight);
+
+    const poolLabelAnchor = new THREE.Group();
+    poolLabelAnchor.position.set(20.2, 0, 0.2);
+    scene.add(poolLabelAnchor);
+    addLabel(poolLabelAnchor, 'Pool', 0.75);
+
+    const deckLabelAnchor = new THREE.Group();
+    deckLabelAnchor.position.set(20.25, 0, 2.9);
+    scene.add(deckLabelAnchor);
+    addLabel(deckLabelAnchor, 'Pool Deck', 0.4);
+
+    addRoomSign('Room 5', 'पाँचवाँ कमरा', new THREE.Vector3(16.55, 2.2, 0));
+
+    // --- Grill (grabbable) ---
+    const grillGroup = new THREE.Group();
+    grillGroup.position.set(22.4, 0, -2.5);
+    grillGroup.add(createBox(0.95, 0.5, 0.6, 0x2b2f33, { x: 0, y: 0.75, z: 0 }));
+    grillGroup.add(createBox(0.98, 0.16, 0.62, 0x3a3f45, { x: 0, y: 1.08, z: 0 }));
+    grillGroup.add(createBox(0.5, 0.05, 0.05, 0x9aa0a6, { x: 0, y: 1.2, z: 0.34 }));
+    [[-0.36, -0.22], [0.36, -0.22], [-0.36, 0.22], [0.36, 0.22]].forEach((p) => {
+      grillGroup.add(createBox(0.06, 0.5, 0.06, 0x6b7075, { x: p[0], y: 0.25, z: p[1] }));
+    });
+    [-0.18, 0.18].forEach((x) => {
+      grillGroup.add(createCylinder(0.05, 0.05, 0.05, 12, 0xd9d9d9,
+        { x, y: 0.72, z: 0.33 }, { x: Math.PI / 2, y: 0, z: 0 }));
+    });
+    for (let i = 0; i < 5; i++) {
+      grillGroup.add(createBox(0.8, 0.02, 0.03, 0x8a9199, { x: 0, y: 1.01, z: -0.2 + i * 0.1 }));
+    }
+    addRoomPickable(grillGroup);
+    addLabel(grillGroup, 'Grill', 1.45);
+
+    // --- Dancing man (grabbable, animated) ---
+    const dancer = new THREE.Group();
+    dancer.position.set(19.4, 0, 2.9);
+    const SHIRT = 0x2bb3a3;
+    const PANTS = 0x2f3a56;
+    const SKIN = 0xc98b62;
+    dancer.add(createBox(0.42, 0.55, 0.24, SHIRT, { x: 0, y: 1.12, z: 0 }));
+    dancer.add(createBox(0.26, 0.28, 0.26, SKIN, { x: 0, y: 1.56, z: 0 }));
+    dancer.add(createBox(0.38, 0.22, 0.24, PANTS, { x: 0, y: 0.78, z: 0 }));
+
+    function makeLimb(w, h, d, color, x, y) {
+      const pivot = new THREE.Group();
+      pivot.position.set(x, y, 0);
+      pivot.add(createBox(w, h, d, color, { x: 0, y: -h / 2, z: 0 }));
+      return pivot;
+    }
+    const armL = makeLimb(0.13, 0.6, 0.13, SKIN, -0.28, 1.34);
+    const armR = makeLimb(0.13, 0.6, 0.13, SKIN, 0.28, 1.34);
+    const legL = makeLimb(0.15, 0.72, 0.15, PANTS, -0.11, 0.72);
+    const legR = makeLimb(0.15, 0.72, 0.15, PANTS, 0.11, 0.72);
+    dancer.add(armL, armR, legL, legR);
+
+    addRoomPickable(dancer);
+    addLabel(dancer, 'Dancing Man', 2.0);
+
+    animatedObjects.push((t) => {
+      if (dancer.parent !== scene) return; // don't fight the controller while held
+      const a = Math.sin(t * 5.0);
+      const b = Math.sin(t * 5.0 + Math.PI);
+      armL.rotation.z = 0.5 + a * 0.9;
+      armR.rotation.z = -0.5 + b * 0.9;
+      legL.rotation.x = a * 0.35;
+      legR.rotation.x = b * 0.35;
+      dancer.rotation.y = Math.sin(t * 2.5) * 0.6;
+      dancer.position.y = Math.abs(a) * 0.06;
+    });
+
+    animatedObjects.push((t) => {
+      waterTexture.offset.x = (t * 0.03) % 1;
+      waterTexture.offset.y = (Math.sin(t * 0.7) * 0.05) % 1;
+    });
 
     // --- Imported high-poly glTF assets ---
     function placeGLTF(name, opts) {
