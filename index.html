@@ -109,6 +109,33 @@
     renderer.outputEncoding = THREE.sRGBEncoding;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 0.65;
+
+    // --- Worlds are partitioned by ?world= so one page can serve many palaces ---
+    const WORLD = (() => {
+      const q = Number(new URLSearchParams(location.search).get('world'));
+      return q === 2 ? 2 : 1;
+    })();
+    const WORLD_CFG = {
+      1: {
+        name: 'World 1 - Home & Food',
+        next: 2,
+        spawn: [0, 0, 2.5],
+        clear: 0x0b0f14,
+        ambient: 0xffffff,
+        pedestal: 0x6d5c4a
+      },
+      2: {
+        name: 'World 2 - Animals, Nature & Body',
+        next: 1,
+        spawn: [28.9, 0, 4.3],
+        clear: 0x150f1c,
+        ambient: 0xd8c4ff,
+        pedestal: 0x4a3f6a
+      }
+    };
+    const CFG = WORLD_CFG[WORLD];
+    renderer.setClearColor(CFG.clear);
+    document.title = CFG.name + ' - Memory Palace';
     document.body.appendChild(renderer.domElement);
 
     const pmremGenerator = new THREE.PMREMGenerator(renderer);
@@ -158,6 +185,7 @@
 
     // --- Lighting ---
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.28);
+    ambientLight.color.setHex(CFG.ambient);
     scene.add(ambientLight);
 
     const dirLight = new THREE.DirectionalLight(0xfff5e6, 0.75);
@@ -362,7 +390,37 @@
       'Star': 'तारा',
       'Rain': 'बारिश',
       'Fire': 'आग',
-      'River': 'नदी'
+      'River': 'नदी',
+      'Dog': 'कुत्ता',
+      'Cat': 'बिल्ली',
+      'Cow': 'गाय',
+      'Horse': 'घोड़ा',
+      'Lion': 'शेर',
+      'Elephant': 'हाथी',
+      'Monkey': 'बंदर',
+      'Bird': 'चिड़िया',
+      'Snake': 'साँप',
+      'Spider': 'मकड़ी',
+      'Mountain': 'पहाड़',
+      'Sea': 'समुद्र',
+      'Forest': 'जंगल',
+      'Field': 'मैदान',
+      'Cloud': 'बादल',
+      'Wind': 'हवा',
+      'Stone': 'पत्थर',
+      'Sand': 'रेत',
+      'Soil': 'मिट्टी',
+      'Lightning': 'बिजली',
+      'Head': 'सिर',
+      'Eye': 'आँख',
+      'Ear': 'कान',
+      'Nose': 'नाक',
+      'Mouth': 'मुँह',
+      'Hand': 'हाथ',
+      'Foot': 'पैर',
+      'Hair': 'बाल',
+      'Tooth': 'दाँत',
+      'Heart': 'दिल'
     };
     const labels = [];
     const labelGeometry = new THREE.PlaneGeometry(1, 1);
@@ -1803,10 +1861,226 @@
       ['River', 'नदी', 'b', 0x3f7fa8, [0.6, 0.02, 0.3]]
     ];
 
-    const pedestalMat = new THREE.MeshStandardMaterial({ color: 0x6d5c4a, roughness: 0.85 });
-    WORDS.forEach((w, i) => {
-      const inner = i < 17;
-      const count = inner ? 17 : WORDS.length - 17;
+    // --- World 2: animals, nature and body parts ---
+    const WORDS2 = [
+      ['Dog', 'कुत्ता'], ['Cat', 'बिल्ली'], ['Cow', 'गाय'], ['Horse', 'घोड़ा'],
+      ['Lion', 'शेर'], ['Elephant', 'हाथी'], ['Monkey', 'बंदर'], ['Bird', 'चिड़िया'],
+      ['Snake', 'साँप'], ['Spider', 'मकड़ी'], ['Mountain', 'पहाड़'], ['Sea', 'समुद्र'],
+      ['Forest', 'जंगल'], ['Field', 'मैदान'], ['Cloud', 'बादल'], ['Wind', 'हवा'],
+      ['Stone', 'पत्थर'], ['Sand', 'रेत'], ['Soil', 'मिट्टी'], ['Lightning', 'बिजली'],
+      ['Head', 'सिर'], ['Eye', 'आँख'], ['Ear', 'कान'], ['Nose', 'नाक'],
+      ['Mouth', 'मुँह'], ['Hand', 'हाथ'], ['Foot', 'पैर'], ['Hair', 'बाल'],
+      ['Tooth', 'दाँत'], ['Heart', 'दिल']
+    ];
+
+    const WORDS2_MODELS = {
+      Dog(g) {
+        B(g, 0.3, 0.14, 0.14, 0x9a6b42, 0, 0.16, 0);
+        B(g, 0.13, 0.12, 0.12, 0xa87a4e, 0.2, 0.2, 0);
+        B(g, 0.06, 0.05, 0.05, 0x6b4a2f, 0.27, 0.18, 0);
+        B(g, 0.04, 0.08, 0.03, 0x8a5f3d, 0.17, 0.28, 0.05);
+        B(g, 0.04, 0.08, 0.03, 0x8a5f3d, 0.17, 0.28, -0.05);
+        for (let i = 0; i < 4; i++) C(g, 0.02, 0.12, 0x8a5f3d, -0.1 + (i % 2) * 0.2, 0.06, i < 2 ? 0.06 : -0.06);
+        B(g, 0.1, 0.025, 0.025, 0x8a5f3d, -0.18, 0.22, 0, 0.4);
+      },
+      Cat(g) {
+        B(g, 0.24, 0.11, 0.11, 0x8a8f96, 0, 0.14, 0);
+        S(g, 0.065, 0x9aa0a6, 0.16, 0.19, 0);
+        K(g, 0.03, 0.06, 0x8a8f96, 0.14, 0.25, 0.04);
+        K(g, 0.03, 0.06, 0x8a8f96, 0.14, 0.25, -0.04);
+        B(g, 0.14, 0.02, 0.02, 0x8a8f96, -0.16, 0.19, 0, -0.5);
+        for (let i = 0; i < 4; i++) C(g, 0.016, 0.1, 0x7a7f86, -0.08 + (i % 2) * 0.16, 0.05, i < 2 ? 0.05 : -0.05);
+      },
+      Cow(g) {
+        B(g, 0.4, 0.18, 0.2, 0xf2f2f2, 0, 0.24, 0);
+        B(g, 0.15, 0.13, 0.13, 0xf7f7f7, 0.26, 0.26, 0);
+        K(g, 0.03, 0.07, 0xd9cbb0, 0.28, 0.35, 0.05);
+        K(g, 0.03, 0.07, 0xd9cbb0, 0.28, 0.35, -0.05);
+        B(g, 0.08, 0.05, 0.09, 0x2f2f2f, 0.33, 0.22, 0);
+        for (let i = 0; i < 4; i++) C(g, 0.028, 0.2, 0xdedede, -0.14 + (i % 2) * 0.28, 0.1, i < 2 ? 0.07 : -0.07);
+        B(g, 0.1, 0.08, 0.02, 0x2f2f2f, -0.05, 0.26, 0.11);
+      },
+      Horse(g) {
+        B(g, 0.42, 0.18, 0.18, 0x6b4a2f, 0, 0.26, 0);
+        B(g, 0.12, 0.24, 0.12, 0x7a5636, 0.24, 0.38, 0);
+        B(g, 0.16, 0.1, 0.1, 0x7a5636, 0.32, 0.5, 0);
+        B(g, 0.04, 0.12, 0.03, 0x3a2a1a, 0.22, 0.44, 0);
+        for (let i = 0; i < 4; i++) C(g, 0.025, 0.22, 0x5a3f28, -0.15 + (i % 2) * 0.3, 0.11, i < 2 ? 0.07 : -0.07);
+        B(g, 0.12, 0.03, 0.03, 0x3a2a1a, -0.24, 0.36, 0, -0.3);
+      },
+      Lion(g) {
+        B(g, 0.36, 0.16, 0.16, 0xc9a04a, 0, 0.22, 0);
+        addPart(g, new THREE.TorusGeometry(0.12, 0.05, 8, 18), 0xb07a2f, 0.26, 0.3, 0, 0, Math.PI / 2, 0);
+        S(g, 0.09, 0xd4ab55, 0.26, 0.3, 0);
+        B(g, 0.05, 0.04, 0.05, 0xc9a04a, 0.33, 0.27, 0);
+        for (let i = 0; i < 4; i++) C(g, 0.025, 0.18, 0xb08c3f, -0.12 + (i % 2) * 0.24, 0.09, i < 2 ? 0.06 : -0.06);
+        B(g, 0.12, 0.025, 0.025, 0xb08c3f, -0.22, 0.28, 0, -0.6);
+      },
+      Elephant(g) {
+        B(g, 0.4, 0.24, 0.24, 0x9aa0a6, 0, 0.28, 0);
+        S(g, 0.12, 0x8a9096, 0.26, 0.34, 0);
+        for (let i = 0; i < 3; i++) C(g, 0.035, 0.09, 0x8a9096, 0.34 + i * 0.015, 0.26 - i * 0.07, 0, 0.4 * i);
+        B(g, 0.16, 0.14, 0.02, 0x8a9096, 0.22, 0.36, 0.12);
+        B(g, 0.16, 0.14, 0.02, 0x8a9096, 0.22, 0.36, -0.12);
+        for (let i = 0; i < 4; i++) C(g, 0.035, 0.2, 0x8a9096, -0.14 + (i % 2) * 0.28, 0.1, i < 2 ? 0.08 : -0.08);
+      },
+      Monkey(g) {
+        B(g, 0.22, 0.18, 0.16, 0x8a5f3d, 0, 0.24, 0);
+        S(g, 0.08, 0xa87a4e, 0, 0.4, 0);
+        B(g, 0.06, 0.06, 0.06, 0x8a5f3d, 0.07, 0.52, 0);
+        S(g, 0.03, 0xd4a07a, 0, 0.38, 0.06);
+        B(g, 0.16, 0.03, 0.03, 0x7a5232, -0.16, 0.36, 0, -0.5);
+        addPart(g, new THREE.TorusGeometry(0.08, 0.014, 6, 14, Math.PI * 1.4), 0x7a5232, -0.8, -0.2, 0, 0, 0, 0);
+      },
+      Bird(g) {
+        const body = S(g, 0.09, 0x4a86c8, 0, 0.16, 0);
+        body.scale.set(1.2, 0.9, 0.9);
+        S(g, 0.055, 0x5a96d8, 0.1, 0.24, 0);
+        K(g, 0.025, 0.07, 0xf2c94c, 0.16, 0.24, 0, 0, 0, Math.PI / 2);
+        B(g, 0.1, 0.16, 0.02, 0x3a78b8, -0.02, 0.18, 0.08, 0.3);
+        B(g, 0.1, 0.16, 0.02, 0x3a78b8, -0.02, 0.18, -0.08, -0.3);
+        B(g, 0.1, 0.02, 0.06, 0x3a78b8, -0.12, 0.18, 0, 0.5);
+      },
+      Snake(g) {
+        for (let i = 0; i < 4; i++) S(g, 0.05, i % 2 ? 0x4f8b3b : 0x5f9b47, -0.18 + i * 0.12, 0.08, Math.sin(i) * 0.06);
+        S(g, 0.06, 0x3f7c2f, 0.3, 0.09, 0);
+        S(g, 0.012, 0xf2c94c, 0.32, 0.12, 0.03);
+        S(g, 0.012, 0xf2c94c, 0.32, 0.12, -0.03);
+      },
+      Spider(g) {
+        S(g, 0.07, 0x22262b, 0, 0.06, 0);
+        S(g, 0.045, 0x2f353b, 0.07, 0.06, 0);
+        for (let i = 0; i < 8; i++) {
+          const side = i < 4 ? -1 : 1;
+          const k = i % 4;
+          B(g, 0.12, 0.008, 0.008, 0x22262b, side * 0.09, 0.06, -0.05 + k * 0.035, side * 0.6);
+        }
+        S(g, 0.01, 0xd43b3b, 0.09, 0.08, 0.02);
+      },
+      Mountain(g) {
+        K(g, 0.16, 0.3, 0x6b7280, -0.06, 0.15, 0);
+        K(g, 0.12, 0.24, 0x7b8290, 0.1, 0.12, 0.04);
+        K(g, 0.05, 0.08, 0xffffff, -0.06, 0.28, 0);
+      },
+      Sea(g) {
+        for (let i = 0; i < 3; i++) B(g, 0.4, 0.02, 0.12, i % 2 ? 0x2f6f96 : 0x3f7fa8, 0, 0.02 + i * 0.04, -0.1 + i * 0.1, 0.1);
+        B(g, 0.1, 0.02, 0.03, 0xffffff, -0.1, 0.1, 0.05);
+        B(g, 0.08, 0.02, 0.03, 0xe8f4fa, 0.12, 0.06, -0.02);
+      },
+      Forest(g) {
+        for (let i = 0; i < 3; i++) {
+          const x = -0.12 + i * 0.12;
+          C(g, 0.02, 0.12, 0x6b4a2f, x, 0.06, 0);
+          K(g, 0.07, 0.16, 0x3f7c3a, x, 0.2, 0);
+          K(g, 0.05, 0.12, 0x4f8b3b, x, 0.3, 0);
+        }
+      },
+      Field(g) {
+        B(g, 0.44, 0.02, 0.3, 0x8a9a4a, 0, 0.01, 0);
+        for (let i = 0; i < 4; i++) B(g, 0.4, 0.012, 0.02, 0x6b7a3a, 0, 0.02, -0.1 + i * 0.07);
+        B(g, 0.04, 0.1, 0.04, 0xd9c27a, 0.14, 0.06, 0.06);
+      },
+      Cloud(g) {
+        const a = S(g, 0.1, 0xf4f8fb, -0.06, 0.2, 0); a.scale.set(1.3, 0.8, 1);
+        const b = S(g, 0.08, 0xffffff, 0.08, 0.22, 0.02); b.scale.set(1.3, 0.8, 1);
+        const c = S(g, 0.07, 0xe4ecf2, 0, 0.26, -0.03); c.scale.set(1.3, 0.8, 1);
+      },
+      Wind(g) {
+        for (let i = 0; i < 3; i++) {
+          const b = B(g, 0.3, 0.012, 0.012, 0x9fd0e8, 0, 0.1 + i * 0.09, 0);
+          b.rotation.z = 0.15 * (i - 1);
+        }
+        addPart(g, new THREE.TorusGeometry(0.05, 0.01, 6, 14, Math.PI), 0xbde0f0, 0.12, 0.28, 0, 0, 0, 0.6);
+      },
+      Stone(g) {
+        const a = B(g, 0.16, 0.12, 0.14, 0x6f757c, 0, 0.06, 0); a.rotation.set(0.2, 0.4, 0.1);
+        const b = B(g, 0.1, 0.09, 0.1, 0x7f858c, 0.1, 0.045, 0.05); b.rotation.set(0.5, 0.2, 0.3);
+        S(g, 0.04, 0x8f959c, -0.08, 0.03, 0.06);
+      },
+      Sand(g) {
+        const dune = K(g, 0.2, 0.1, 0xd9c27a, 0, 0.05, 0);
+        dune.rotation.x = Math.PI;
+        for (let i = 0; i < 5; i++) S(g, 0.008, 0xe8d08a, -0.08 + i * 0.04, 0.11, 0.02 * (i % 2));
+      },
+      Soil(g) {
+        const mound = S(g, 0.13, 0x5a4028, 0, 0.02, 0); mound.scale.set(1.2, 0.4, 1.2);
+        C(g, 0.008, 0.12, 0x4f8b3b, 0, 0.1, 0);
+        S(g, 0.03, 0x6fa84a, 0.03, 0.16, 0);
+      },
+      Lightning(g) {
+        B(g, 0.04, 0.1, 0.02, 0xf5e27a, 0, 0.3, 0, 0.5);
+        B(g, 0.04, 0.1, 0.02, 0xf5e27a, -0.035, 0.21, 0, -0.5);
+        B(g, 0.04, 0.1, 0.02, 0xf5e27a, 0.0, 0.12, 0, 0.5);
+        S(g, 0.03, 0xfff6b0, 0, 0.36, 0);
+      },
+      Head(g) {
+        S(g, 0.12, 0xb07a52, 0, 0.3, 0);
+        B(g, 0.05, 0.12, 0.08, 0xa06a42, 0, 0.19, 0);
+        S(g, 0.02, 0xffffff, 0.05, 0.33, 0.1);
+        S(g, 0.02, 0xffffff, -0.05, 0.33, 0.1);
+        S(g, 0.008, 0x2f2f2f, 0.05, 0.33, 0.115);
+        S(g, 0.008, 0x2f2f2f, -0.05, 0.33, 0.115);
+        B(g, 0.05, 0.03, 0.04, 0xb07a52, 0, 0.27, 0.11);
+      },
+      Eye(g) {
+        S(g, 0.1, 0xffffff, 0, 0.14, 0);
+        C(g, 0.04, 0.02, 0x4a86c8, 0, 0.14, 0.09, Math.PI / 2);
+        C(g, 0.018, 0.02, 0x101820, 0, 0.14, 0.1, Math.PI / 2);
+        addPart(g, new THREE.TorusGeometry(0.1, 0.015, 6, 18), 0x8a5f3d, 0, 0.14, 0, 0, 0, 0);
+      },
+      Ear(g) {
+        const outer = S(g, 0.1, 0xb07a52, 0, 0.15, 0); outer.scale.set(0.7, 1.2, 0.5);
+        const inner = S(g, 0.06, 0x8a5a3a, 0, 0.15, 0.04); inner.scale.set(0.6, 1.1, 0.4);
+        B(g, 0.03, 0.06, 0.03, 0xb07a52, 0, 0.05, 0);
+      },
+      Nose(g) {
+        const bridge = B(g, 0.06, 0.16, 0.08, 0xc98b62, 0, 0.22, 0); bridge.rotation.x = 0.25;
+        const tip = S(g, 0.05, 0xd49a70, 0, 0.14, 0.02); tip.scale.set(1.2, 0.8, 1);
+        S(g, 0.012, 0x6b4a2f, -0.02, 0.12, 0.06);
+        S(g, 0.012, 0x6b4a2f, 0.02, 0.12, 0.06);
+      },
+      Mouth(g) {
+        const upper = B(g, 0.2, 0.03, 0.06, 0xc46a6a, 0, 0.16, 0); upper.rotation.x = 0.1;
+        const lower = B(g, 0.2, 0.03, 0.06, 0xb85a5a, 0, 0.11, 0); lower.rotation.x = -0.1;
+        B(g, 0.14, 0.02, 0.04, 0xffffff, 0, 0.135, 0.02);
+      },
+      Hand(g) {
+        const palm = B(g, 0.16, 0.06, 0.14, 0xc98b62, 0, 0.06, 0);
+        for (let i = 0; i < 4; i++) B(g, 0.03, 0.03, 0.1, 0xd49a70, -0.06 + i * 0.04, 0.06, 0.11, 0.1);
+        B(g, 0.04, 0.03, 0.07, 0xd49a70, -0.1, 0.06, 0.0, 0.8);
+      },
+      Foot(g) {
+        const sole = B(g, 0.12, 0.05, 0.28, 0xc98b62, 0, 0.03, 0.04);
+        B(g, 0.1, 0.04, 0.06, 0xd49a70, 0, 0.04, 0.18);
+        C(g, 0.045, 0.14, 0xb07a52, 0, 0.12, -0.06);
+        for (let i = 0; i < 3; i++) S(g, 0.015, 0xe0b090, -0.03 + i * 0.03, 0.05, 0.19);
+      },
+      Hair(g) {
+        for (let i = 0; i < 6; i++) {
+          const strand = C(g, 0.012, 0.18, i % 2 ? 0x3a2a1a : 0x4a3624, -0.08 + i * 0.032, 0.13, 0.02 * (i % 2));
+          strand.rotation.z = 0.12 * (i - 2.5);
+        }
+        S(g, 0.06, 0x3a2a1a, 0, 0.24, 0);
+      },
+      Tooth(g) {
+        B(g, 0.09, 0.08, 0.09, 0xfbfbf7, 0, 0.16, 0);
+        C(g, 0.02, 0.1, 0xe8e8da, -0.025, 0.07, 0);
+        C(g, 0.02, 0.1, 0xe8e8da, 0.025, 0.07, 0);
+        B(g, 0.07, 0.02, 0.07, 0xdfe8ee, 0, 0.2, 0);
+      },
+      Heart(g) {
+        const l = S(g, 0.08, 0xd43b3b, -0.045, 0.2, 0);
+        const r = S(g, 0.08, 0xe84848, 0.045, 0.2, 0);
+        K(g, 0.11, 0.16, 0xd43b3b, 0, 0.12, 0).rotation.x = Math.PI;
+      }
+    };
+
+    const pedestalMat = new THREE.MeshStandardMaterial({ color: CFG.pedestal, roughness: 0.85 });
+    const ACTIVE_WORDS = WORLD === 2 ? WORDS2 : WORDS;
+    ACTIVE_WORDS.forEach((w, i) => {
+      const innerCount = Math.ceil(ACTIVE_WORDS.length * 0.4);
+      const inner = i < innerCount;
+      const count = inner ? innerCount : ACTIVE_WORDS.length - innerCount;
       const idx = inner ? i : i - 17;
       const radius = inner ? 2.0 : 3.55;
       const ang = (idx / count) * Math.PI * 2 + (inner ? 0.3 : 0);
@@ -1821,13 +2095,44 @@
 
       const model = new THREE.Group();
       model.position.y = 0.6;
-      if (WORD_MODELS[w[0]]) WORD_MODELS[w[0]](model);
-      else B(model, 0.2, 0.2, 0.2, w[3], 0, 0.1, 0);
+      const builder = WORDS2_MODELS[w[0]] || WORD_MODELS[w[0]];
+      if (builder) builder(model);
+      else B(model, 0.2, 0.2, 0.2, 0xaaaaaa, 0, 0.1, 0);
       g.add(model);
 
       addRoomPickable(g);
       addLabel(g, w[0], 1.25);
     });
+
+    // --- Portal: stand inside the ring to travel to the next world ---
+    const portalGroup = new THREE.Group();
+    portalGroup.position.set(rotCX, 0.02, rotCZ);
+    const portalRing = new THREE.Mesh(
+      new THREE.TorusGeometry(0.95, 0.055, 10, 48),
+      new THREE.MeshStandardMaterial({
+        color: 0x66e0ff, emissive: 0x2299cc, emissiveIntensity: 1.4, roughness: 0.3
+      })
+    );
+    portalRing.rotation.x = -Math.PI / 2;
+    portalGroup.add(portalRing);
+    const portalDisc = new THREE.Mesh(
+      new THREE.CircleGeometry(0.92, 48),
+      new THREE.MeshBasicMaterial({ color: 0x1a4a66, transparent: true, opacity: 0.5 })
+    );
+    portalDisc.rotation.x = -Math.PI / 2;
+    portalDisc.position.y = 0.005;
+    portalGroup.add(portalDisc);
+    portalGroup.traverse((c) => {
+      c.userData.isEnvironment = true;
+      c.userData.isPickable = false;
+    });
+    scene.add(portalGroup);
+
+    const portalGlow = new THREE.PointLight(0x66e0ff, 0.6, 4.5);
+    portalGlow.position.set(rotCX, 1.2, rotCZ);
+    scene.add(portalGlow);
+
+    addRoomSign('World ' + CFG.next, 'अगली दुनिया', new THREE.Vector3(rotCX, 2.6, rotCZ + 1.7));
 
     addRoomSign('Room 8', 'आठवाँ कमरा', new THREE.Vector3(24.3, 2.4, 0));
 
@@ -2375,7 +2680,7 @@
     playerRig.add(grip0);
     playerRig.add(grip1);
 
-    playerRig.position.set(0, 0, 2.5);
+    playerRig.position.set(CFG.spawn[0], CFG.spawn[1], CFG.spawn[2]);
 
     if (new URLSearchParams(location.search).has('debug')) {
       window.__rig = playerRig;
@@ -2793,6 +3098,8 @@
     const HEIGHT_MAX = 0.7;      // stand limit   (eye ~2.3 m)
     const HEIGHT_TAP = 0.05;     // nudge so a quick tap still registers
     let prevFaceButtons = { x: false, y: false };
+    let portalDwell = 0;
+    const portalTmp = new THREE.Vector3();
     const labelCamPos = new THREE.Vector3();
     const labelWorldPos = new THREE.Vector3();
     const labelParentQuat = new THREE.Quaternion();
@@ -2832,6 +3139,29 @@
             : 1;
           label.scale.set(base.x * f, base.y * f, 1);
         });
+      }
+
+      // --- Portal: dwell inside the ring to load the next world ---
+      const headPos = renderer.xr.isPresenting
+        ? renderer.xr.getCamera(camera).getWorldPosition(portalTmp)
+        : camera.getWorldPosition(portalTmp);
+      const pdx = headPos.x - rotCX;
+      const pdz = headPos.z - rotCZ;
+      const inPortal = (pdx * pdx + pdz * pdz) < 0.81 && headPos.y < 2.4;
+      if (inPortal) {
+        portalDwell += delta;
+        portalRing.scale.setScalar(1 + Math.sin(elapsed * 6) * 0.04 + Math.min(portalDwell, 1.2) * 0.06);
+        const infoEl = document.getElementById('info');
+        if (infoEl) {
+          infoEl.textContent = 'Travelling to World ' + CFG.next + '  ' +
+            Math.min(100, Math.round((portalDwell / 1.2) * 100)) + '%';
+        }
+        if (portalDwell >= 1.2) {
+          location.href = 'index.html?world=' + CFG.next;
+        }
+      } else {
+        portalDwell = 0;
+        portalRing.scale.setScalar(1 + Math.sin(elapsed * 3) * 0.03);
       }
 
       if (renderer.xr.isPresenting) {
