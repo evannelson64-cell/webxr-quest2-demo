@@ -23,6 +23,18 @@
       backdrop-filter: blur(5px);
       border: 1px solid rgba(255, 255, 255, 0.2);
     }
+    #stats {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      background: rgba(0, 0, 0, 0.55);
+      color: #9fe8ff;
+      padding: 4px 8px;
+      border-radius: 6px;
+      pointer-events: none;
+      font: 11px "Consolas", monospace;
+      letter-spacing: 0.3px;
+    }
     #vr-button {
       position: absolute;
       bottom: 30px;
@@ -73,6 +85,7 @@
 </head>
 <body>
   <div id="info">🪔 Happy Diwali! • Trigger to hear Hindi • Move with left joystick</div>
+<div id="stats">stats</div>
   <button id="vr-button">Enter VR</button>
   <div id="loading">Entering VR…</div>
   <div id="progress">Loading assets… 0%</div>
@@ -2819,8 +2832,10 @@
       'Dancing Man': 'audio/dancing_man.mp3'
     };
     const audioBuffers = {};
+    const audioOrder = [];
+    const audioPending = {};
+    const AUDIO_CACHE_MAX = 24;   // decoded clips kept resident
     let audioCtx = null;
-    let audioLoadPromise = null;
 
     function getAudioContext() {
       if (!audioCtx) {
@@ -2840,28 +2855,52 @@
       return AUDIO_CLIPS[label] || ('audio/' + slugifyLabel(label) + '.mp3');
     }
 
-    function loadAudioClips() {
-      if (audioLoadPromise) return audioLoadPromise;
+    // Decoded audio is PCM floats and the expensive thing to hold, so keep only
+    // the most recently spoken clips. This is what lets the catalogue grow to
+    // thousands of words without the page carrying them all.
+    function touchClip(label) {
+      const i = audioOrder.indexOf(label);
+      if (i >= 0) audioOrder.splice(i, 1);
+      audioOrder.push(label);
+      while (audioOrder.length > AUDIO_CACHE_MAX) {
+        delete audioBuffers[audioOrder.shift()];
+      }
+    }
+
+    function getClip(label) {
+      if (audioBuffers[label]) {
+        touchClip(label);
+        return Promise.resolve(audioBuffers[label]);
+      }
+      if (audioPending[label]) return audioPending[label];
       const ctx = getAudioContext();
-      if (!ctx) return Promise.resolve();
-      audioLoadPromise = Promise.all(Object.keys(HINDI).map(async (label) => {
-        try {
-          const res = await fetch(audioUrlFor(label));
+      if (!ctx) return Promise.resolve(null);
+      audioPending[label] = fetch(audioUrlFor(label))
+        .then((res) => {
           if (!res.ok) throw new Error('HTTP ' + res.status);
-          const data = await res.arrayBuffer();
-          audioBuffers[label] = await ctx.decodeAudioData(data);
-        } catch (e) {
+          return res.arrayBuffer();
+        })
+        .then((data) => ctx.decodeAudioData(data))
+        .then((buf) => {
+          audioBuffers[label] = buf;
+          touchClip(label);
+          return buf;
+        })
+        .catch((e) => {
           console.error('AUDIO LOAD ERR', label, e);
-        }
-      }));
-      return audioLoadPromise;
+          return null;
+        })
+        .then((v) => {
+          delete audioPending[label];
+          return v;
+        });
+      return audioPending[label];
     }
 
     function unlockAudio() {
       const ctx = getAudioContext();
       if (!ctx) return;
       if (ctx.state === 'suspended') ctx.resume().catch(() => {});
-      loadAudioClips();
     }
 
     window.addEventListener('pointerdown', unlockAudio, { passive: true });
@@ -2896,8 +2935,7 @@
       }
       if (info) info.textContent = 'Speaking: ' + text;
 
-      await loadAudioClips();
-      const buffer = audioBuffers[label];
+      const buffer = await getClip(label);
       if (buffer && ctx && ctx.state === 'running') {
         try {
           const src = ctx.createBufferSource();
@@ -3105,6 +3143,9 @@
     const labelParentQuat = new THREE.Quaternion();
     const labelTargetQuat = new THREE.Quaternion();
     const labelUpAxis = new THREE.Vector3(0, 1, 0);
+    const LABEL_CULL_DIST = 22;   // hide far labels: fewer draw calls, less fill
+    let statsAccum = 0;
+    const statsEl = document.getElementById('stats');
 
     renderer.setAnimationLoop(() => {
       try {
@@ -3119,6 +3160,13 @@
           : camera.getWorldPosition(labelCamPos);
         labels.forEach((label) => {
           label.getWorldPosition(labelWorldPos);
+
+          // Distance culling: a big catalogue cannot afford every label drawn
+          if (labelWorldPos.distanceToSquared(camPos) > LABEL_CULL_DIST * LABEL_CULL_DIST) {
+            if (label.visible) label.visible = false;
+            return;
+          }
+          if (!label.visible) label.visible = true;
 
           // Yaw-only billboard: face the viewer horizontally and stay upright.
           // Pitch and roll are discarded, so labels never tilt with the head.
@@ -3162,6 +3210,18 @@
       } else {
         portalDwell = 0;
         portalRing.scale.setScalar(1 + Math.sin(elapsed * 3) * 0.03);
+      }
+
+      statsAccum += delta;
+      if (statsAccum >= 0.5) {
+        statsAccum = 0;
+        if (statsEl) {
+          statsEl.textContent =
+            'FPS ' + Math.round(1 / Math.max(delta, 0.001)) +
+            ' | calls ' + renderer.info.render.calls +
+            ' | geo ' + renderer.info.memory.geometries +
+            ' | tex ' + renderer.info.memory.textures;
+        }
       }
 
       if (renderer.xr.isPresenting) {
