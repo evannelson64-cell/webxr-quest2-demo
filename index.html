@@ -2653,7 +2653,12 @@
         ['Butterfly', 'insect', { c: 0x4a86c8 }], ['Ladybug', 'insect', { c: 0xd45a4a }],
         ['Bee', 'insect', { c: 0xf2c94c }], ['Mushroom', 'mushroom', {}], ['Mushroom', 'mushroom', {}],
         ['Leaf', 'leaf', {}], ['Leaf', 'leaf', {}], ['Balloon', 'balloon', { c: 0xd45a6a }],
-        ['Balloon', 'balloon', { c: 0x4a86c8 }]
+        ['Balloon', 'balloon', { c: 0x4a86c8 }],
+        ['Bench', 'bench', {}], ['Bench', 'bench', {}],
+        ['Tree', 'tree', { c: 0x3f7c3a }], ['Tree', 'tree', { c: 0x5f9b47 }],
+        ['Flower', 'flower', { c: 0xe86a8a }], ['Flower', 'flower', { c: 0xf2c94c }],
+        ['Bush', 'bush', {}], ['Rock', 'rock', {}],
+        ['Ball', 'ball', { c: 0x4f8b3b, r: 0.17 }]
       ];
 
       // deterministic grid, skipping cells that the court or equipment occupy
@@ -2661,10 +2666,10 @@
       const occupied = (x, z) => (Math.abs(x - 1) < 7.2 && Math.abs(z - 0.5) < 4.2) ||
         [['-12,6'], ['-6,9'], ['0,-9'], ['8,-9'], ['-12,-6'], ['12,-6'], ['12,8'], ['-6,-10'], ['3,9']]
           .some((k) => k[0] === x + ',' + z);
-      for (let gx = 0; gx < 9 && pi < props.length; gx++) {
-        for (let gz = 0; gz < 7 && pi < props.length; gz++) {
-          const x = -17 + gx * 4.2;
-          const z = -13 + gz * 4.4;
+      for (let gx = 0; gx < 12 && pi < props.length; gx++) {
+        for (let gz = 0; gz < 9 && pi < props.length; gz++) {
+          const x = -19 + gx * 3.6;
+          const z = -14.4 + gz * 3.6;
           if (occupied(x, z)) continue;
           const p = props[pi++];
           place(p[0], p[1], x, z, p[2]);
