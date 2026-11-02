@@ -126,7 +126,7 @@
     // --- Worlds are partitioned by ?world= so one page can serve many palaces ---
     const WORLD = (() => {
       const q = Number(new URLSearchParams(location.search).get('world'));
-      return q === 2 ? 2 : (q === 3 ? 3 : 1);
+      return q === 2 ? 2 : (q === 3 ? 3 : (q === 4 ? 4 : 1));
     })();
     const WORLD_CFG = {
       1: {
@@ -147,11 +147,19 @@
       },
       3: {
         name: 'World 3 - Playground Park',
-        next: 1,
+        next: 4,
         spawn: [48, 0, 14],
         clear: 0x87c8ee,
         ambient: 0xfff3dd,
         pedestal: 0x6b7a5a
+      },
+      4: {
+        name: 'World 4 - Sentence Workshop',
+        next: 1,
+        spawn: [0, 0, 15.5],
+        clear: 0x140f18,
+        ambient: 0xffe4c4,
+        pedestal: 0x6a5a7a
       }
     };
     const CFG = WORLD_CFG[WORLD];
@@ -505,7 +513,21 @@
       'To Jump': 'कूदना',
       'To Climb': 'चढ़ना',
       'To Walk': 'चलना',
-      'To Slide': 'फिसलना'
+      'To Slide': 'फिसलना',
+      'Boy': 'लड़का',
+      'Girl': 'लड़की',
+      'Red': 'लाल',
+      'Cold': 'ठंडा',
+      'Round': 'गोल',
+      'Eats': 'खाता',
+      'Drinks': 'पीती',
+      'Catches': 'पकड़ता',
+      'Beautiful': 'सुंदर',
+      'Song': 'गाना',
+      'Sings': 'गाती',
+      'Man': 'आदमी',
+      'New': 'नई',
+      'Reads': 'पढ़ता'
     };
     const labels = [];
     const labelGeometry = new THREE.PlaneGeometry(1, 1);
@@ -2163,7 +2185,7 @@
     };
 
     const pedestalMat = new THREE.MeshStandardMaterial({ color: CFG.pedestal, roughness: 0.85 });
-    const ACTIVE_WORDS = WORLD === 3 ? [] : (WORLD === 2 ? WORDS2 : WORDS);
+    const ACTIVE_WORDS = (WORLD === 3 || WORLD === 4) ? [] : (WORLD === 2 ? WORDS2 : WORDS);
     ACTIVE_WORDS.forEach((w, i) => {
       const innerCount = Math.ceil(ACTIVE_WORDS.length * 0.4);
       const inner = i < innerCount;
@@ -2193,8 +2215,8 @@
 
     // --- Portal: stand inside the ring to travel to the next world ---
     // World 3 keeps its portal out in the park instead of the rotunda.
-    const PORTAL_X = WORLD === 3 ? 56 : rotCX;
-    const PORTAL_Z = WORLD === 3 ? 10.2 : rotCZ;
+    const PORTAL_X = WORLD === 3 ? 56 : (WORLD === 4 ? 3 : rotCX);
+    const PORTAL_Z = WORLD === 3 ? 10.2 : (WORLD === 4 ? 16 : rotCZ);
     const portalGroup = new THREE.Group();
     portalGroup.position.set(PORTAL_X, 0.02, PORTAL_Z);
     const portalRing = new THREE.Mesh(
@@ -2753,6 +2775,271 @@
       });
     }
     if (WORLD === 3) buildPark();
+
+    // ============================================================
+    // --- World 4: Sentence Workshop ---
+    // ============================================================
+    let SENTENCE_GAME = null;
+
+    const SENTENCES = [
+      { en: 'The boy eats a red apple.', hi: 'लड़का लाल सेब खाता है।',
+        tokens: [['Boy', 'subj'], ['Red', 'adj'], ['Apple', 'obj'], ['Eats', 'verb']] },
+      { en: 'The girl drinks cold water.', hi: 'लड़की ठंडा पानी पीती है।',
+        tokens: [['Girl', 'subj'], ['Cold', 'adj'], ['Water', 'obj'], ['Drinks', 'verb']] },
+      { en: 'The dog catches a round ball.', hi: 'कुत्ता गोल गेंद पकड़ता है।',
+        tokens: [['Dog', 'subj'], ['Round', 'adj'], ['Ball', 'obj'], ['Catches', 'verb']] },
+      { en: 'The bird sings a beautiful song.', hi: 'चिड़िया सुंदर गाना गाती है।',
+        tokens: [['Bird', 'subj'], ['Beautiful', 'adj'], ['Song', 'obj'], ['Sings', 'verb']] },
+      { en: 'The man reads a new book.', hi: 'आदमी नई किताब पढ़ता है।',
+        tokens: [['Man', 'subj'], ['New', 'adj'], ['Book', 'obj'], ['Reads', 'verb']] }
+    ];
+
+    // Loads a clip by URL, falling back to browser speech if the file is missing.
+    async function playAudioUrl(url, fallbackText) {
+      const ctx = getAudioContext();
+      if (!ctx) return;
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const buf = await ctx.decodeAudioData(await res.arrayBuffer());
+        const src = ctx.createBufferSource();
+        src.buffer = buf;
+        src.connect(ctx.destination);
+        src.start();
+      } catch (e) {
+        speakFallback(fallbackText);
+      }
+    }
+
+    function buildSentenceLab() {
+      const CX = 0;
+      const CZ = 20;
+
+      const labFloorMat = new THREE.MeshStandardMaterial({ color: 0x4a4256, roughness: 0.85 });
+      const labFloor = new THREE.Mesh(new THREE.PlaneGeometry(8, 10), labFloorMat);
+      labFloor.rotation.x = -Math.PI / 2;
+      labFloor.position.set(CX, 0.004, CZ);
+      labFloor.receiveShadow = true;
+      labFloor.userData.isEnvironment = true;
+      scene.add(labFloor);
+
+      const labWallMat = new THREE.MeshStandardMaterial({ color: 0xe8dcc8, roughness: 0.9 });
+      const labWalls = [
+        [8, 3, 0.2, CX, 1.5, 25],
+        [0.2, 3, 10, CX - 4, 1.5, CZ],
+        [0.2, 3, 10, CX + 4, 1.5, CZ]
+      ];
+      labWalls.forEach((w) => {
+        const m = createBox(w[0], w[1], w[2], 0xffffff, { x: w[3], y: w[4], z: w[5] });
+        m.material = labWallMat;
+        m.userData.isEnvironment = true;
+        scene.add(m);
+      });
+
+      const labLight = new THREE.PointLight(0xffe4c4, 0.8, 12);
+      labLight.position.set(CX, 3.0, CZ);
+      scene.add(labLight);
+
+      // --- sentence panel ---
+      const panelCanvas = document.createElement('canvas');
+      panelCanvas.width = 1024;
+      panelCanvas.height = 320;
+      const panelCtx = panelCanvas.getContext('2d');
+      const panelTex = new THREE.CanvasTexture(panelCanvas);
+      const panel = new THREE.Mesh(
+        new THREE.PlaneGeometry(5.2, 1.62),
+        new THREE.MeshBasicMaterial({ map: panelTex, transparent: true })
+      );
+      panel.position.set(CX, 3.15, 24.82);
+      panel.rotation.y = Math.PI;
+      scene.add(panel);
+
+      function drawPanel(main, sub, complete) {
+        panelCtx.clearRect(0, 0, 1024, 320);
+        panelCtx.fillStyle = complete ? 'rgba(30, 90, 60, 0.92)' : 'rgba(20, 24, 34, 0.9)';
+        panelCtx.fillRect(0, 0, 1024, 320);
+        panelCtx.strokeStyle = complete ? '#7fe0a0' : '#ffd166';
+        panelCtx.lineWidth = 8;
+        panelCtx.strokeRect(8, 8, 1008, 304);
+        panelCtx.fillStyle = '#ffffff';
+        panelCtx.textAlign = 'center';
+        panelCtx.textBaseline = 'middle';
+        panelCtx.font = 'bold 58px "Noto Sans Devanagari", "Mangal", Arial';
+        panelCtx.fillText(main, 512, 130);
+        panelCtx.fillStyle = complete ? '#bff5cf' : '#ffd166';
+        panelCtx.font = '32px Arial';
+        panelCtx.fillText(sub, 512, 220);
+        panelTex.needsUpdate = true;
+      }
+
+      // --- board with slots ---
+      const board = new THREE.Group();
+      board.position.set(CX, 0, 24.55);
+      const boardPanel = createBox(5.4, 1.5, 0.1, 0x22262e, { x: 0, y: 2.1, z: 0 });
+      board.add(boardPanel);
+
+      const ROLES = [
+        { key: 'subj', color: 0x4a86c8, name: 'subject' },
+        { key: 'adj', color: 0xf2c94c, name: 'adjective' },
+        { key: 'obj', color: 0x2bb3a3, name: 'object' },
+        { key: 'verb', color: 0x5fb85f, name: 'verb' }
+      ];
+
+      const slots = ROLES.map((r, i) => {
+        const x = -1.9 + i * 1.27;
+        const g = new THREE.Group();
+        g.position.set(x, 2.1, 0.12);
+        const frameMat = new THREE.MeshStandardMaterial({ color: r.color, emissive: r.color, emissiveIntensity: 0.35, roughness: 0.4 });
+        const fw = 1.1, fh = 0.62, t = 0.05;
+        [[fw, t, 0.04, 0, fh / 2], [fw, t, 0.04, 0, -fh / 2],
+         [t, fh, 0.04, -fw / 2, 0], [t, fh, 0.04, fw / 2, 0]].forEach((b) => {
+          const m = new THREE.Mesh(new THREE.BoxGeometry(b[0], b[1], b[2]), frameMat);
+          m.position.set(b[3], b[4], 0);
+          g.add(m);
+        });
+        board.add(g);
+        return { role: r.key, group: g, filled: false, obj: null, pos: null };
+      });
+      scene.add(board);
+      slots.forEach((s) => { s.pos = s.group.getWorldPosition(new THREE.Vector3()); });
+
+      // hint text under each slot
+      ROLES.forEach((r, i) => {
+        const c = document.createElement('canvas');
+        c.width = 256; c.height = 64;
+        const x2 = c.getContext('2d');
+        x2.fillStyle = 'rgba(0,0,0,0)'; x2.fillRect(0, 0, 256, 64);
+        x2.fillStyle = '#dfe6ee';
+        x2.font = 'bold 34px Arial';
+        x2.textAlign = 'center'; x2.textBaseline = 'middle';
+        x2.fillText(r.name, 128, 32);
+        const t2 = new THREE.CanvasTexture(c);
+        const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.28),
+          new THREE.MeshBasicMaterial({ map: t2, transparent: true }));
+        mesh.position.set(-1.9 + i * 1.27, 1.62, 24.68);
+        scene.add(mesh);
+      });
+
+      // --- table + tiles ---
+      const table = createBox(5.0, 0.1, 1.2, 0x6b5a48, { x: CX, y: 0.9, z: 21.4 });
+      const tableLegs = [[-2.2, 21.4], [2.2, 21.4]];
+      tableLegs.forEach((p) => {
+        scene.add(createBox(0.12, 0.9, 0.12, 0x554636, { x: p[0], y: 0.45, z: p[1] }));
+      });
+      table.userData.isEnvironment = true;
+      scene.add(table);
+
+      const state = {
+        index: 0,
+        slots,
+        tiles: [],
+        done: false,
+        doneAt: 0,
+        attempts: 0
+      };
+
+      function clearTiles() {
+        state.tiles.forEach((t) => {
+          scene.remove(t);
+          t.traverse((c) => {
+            if (c.geometry) c.geometry.dispose();
+            if (c.material) {
+              if (c.material.map) c.material.map.dispose();
+              c.material.dispose();
+            }
+          });
+        });
+        state.tiles = [];
+      }
+
+      function buildTiles() {
+        clearTiles();
+        const s = SENTENCES[state.index];
+        const n = s.tokens.length;
+        s.tokens.forEach((tok, i) => {
+          const g = new THREE.Group();
+          const x = -1.8 + i * 1.2;
+          g.position.set(CX + x, 1.0, 21.4);
+          const role = tok[1];
+          const roleColor = { subj: 0x4a86c8, adj: 0xf2c94c, obj: 0x2bb3a3, verb: 0x5fb85f }[role];
+          const slab = createBox(0.72, 0.12, 0.46, roleColor, { x: 0, y: 0, z: 0 });
+          g.add(slab);
+          g.userData.sentenceTile = role;
+          g.userData.wordKey = tok[0];
+          addRoomPickable(g);
+          addLabel(g, tok[0], 0.42);
+          state.tiles.push(g);
+        });
+        drawPanel('Build the sentence', s.en, false);
+      }
+
+      state.tryPlace = (obj, worldPos) => {
+        if (!obj.userData.sentenceTile) return false;
+        let best = null;
+        let bestD = 0.85;
+        slots.forEach((s) => {
+          if (s.filled) return;
+          if (s.role !== obj.userData.sentenceTile) return;
+          const d = worldPos.distanceTo(s.pos);
+          if (d < bestD) { bestD = d; best = s; }
+        });
+        if (!best) return false;
+
+        obj.position.copy(best.pos);
+        obj.position.z += 0.02;
+        obj.quaternion.set(0, 0, 0, 1);
+        obj.userData.placed = true;
+        best.filled = true;
+        best.obj = obj;
+        best.group.children.forEach((c) => {
+          if (c.material && c.material.emissiveIntensity !== undefined) c.material.emissiveIntensity = 0.9;
+        });
+        speakHindi(obj.userData.wordKey);
+        state.check();
+        return true;
+      };
+
+      state.check = () => {
+        if (state.done) return;
+        if (!slots.every((s) => s.filled)) return;
+        state.done = true;
+        state.doneAt = clock.elapsedTime;
+        const s = SENTENCES[state.index];
+        drawPanel(s.hi, s.en + '  —  all words placed!', true);
+        playAudioUrl('audio/sentence_' + (state.index + 1) + '.mp3', s.hi);
+        slots.forEach((sl) => {
+          sl.group.children.forEach((c) => {
+            if (c.material && c.material.emissiveIntensity !== undefined) c.material.emissiveIntensity = 1.6;
+          });
+        });
+      };
+
+      state.next = () => {
+        state.index = (state.index + 1) % SENTENCES.length;
+        state.done = false;
+        slots.forEach((s) => {
+          s.filled = false;
+          s.obj = null;
+          s.group.children.forEach((c) => {
+            if (c.material && c.material.emissiveIntensity !== undefined) c.material.emissiveIntensity = 0.35;
+          });
+        });
+        buildTiles();
+      };
+
+      state.reset = () => {
+        slots.forEach((s) => { s.filled = false; s.obj = null; });
+        state.done = false;
+        buildTiles();
+      };
+
+      buildTiles();
+      drawPanel('Build the sentence', SENTENCES[0].en, false);
+
+      addRoomSign('Sentence Workshop', 'वाक्य कार्यशाला', new THREE.Vector3(CX, 3.9, 24.4));
+      SENTENCE_GAME = state;
+    }
+    if (WORLD === 4) buildSentenceLab();
 
     // --- Imported high-poly glTF assets ---
     function placeGLTF(name, opts) {
@@ -3625,6 +3912,12 @@
          scene.add(heldObj);
          heldObj.position.copy(worldPos);
          heldObj.quaternion.copy(worldQuat);
+
+         // Sentence workshop: drop a tile near a matching slot to snap it in
+         if (SENTENCE_GAME && SENTENCE_GAME.tryPlace(heldObj, worldPos)) {
+           controllerState[controllerIndex].object = null;
+           return;
+         }
          if (!heldObj.userData.homePosition) {
            heldObj.userData.homePosition = worldPos.clone();
            heldObj.userData.homeQuaternion = worldQuat.clone();
@@ -3815,6 +4108,10 @@
       } else {
         portalDwell = 0;
         portalRing.scale.setScalar(1 + Math.sin(elapsed * 3) * 0.03);
+      }
+
+      if (SENTENCE_GAME && SENTENCE_GAME.done && (elapsed - SENTENCE_GAME.doneAt) > 8) {
+        SENTENCE_GAME.next();
       }
 
       statsAccum += delta;
