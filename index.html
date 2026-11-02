@@ -126,7 +126,7 @@
     // --- Worlds are partitioned by ?world= so one page can serve many palaces ---
     const WORLD = (() => {
       const q = Number(new URLSearchParams(location.search).get('world'));
-      return q === 2 ? 2 : 1;
+      return q === 2 ? 2 : (q === 3 ? 3 : 1);
     })();
     const WORLD_CFG = {
       1: {
@@ -139,11 +139,19 @@
       },
       2: {
         name: 'World 2 - Animals, Nature & Body',
-        next: 1,
+        next: 3,
         spawn: [28.9, 0, 4.3],
         clear: 0x150f1c,
         ambient: 0xd8c4ff,
         pedestal: 0x4a3f6a
+      },
+      3: {
+        name: 'World 3 - Playground Park',
+        next: 1,
+        spawn: [56, 0, 11.5],
+        clear: 0x87c8ee,
+        ambient: 0xfff3dd,
+        pedestal: 0x6b7a5a
       }
     };
     const CFG = WORLD_CFG[WORLD];
@@ -433,7 +441,71 @@
       'Foot': 'पैर',
       'Hair': 'बाल',
       'Tooth': 'दाँत',
-      'Heart': 'दिल'
+      'Heart': 'दिल',
+      'Swing': 'झूला',
+      'Slide': 'फिसलनपट्टी',
+      'Seesaw': 'सी-सॉ',
+      'Roundabout': 'चकरी',
+      'Monkey Bars': 'बंदर की सीढ़ी',
+      'Climbing Wall': 'चढ़ने की दीवार',
+      'Trampoline': 'ट्रैम्पोलिन',
+      'Sandbox': 'रेत का डिब्बा',
+      'Net': 'जाल',
+      'Volleyball': 'वॉलीबॉल',
+      'Picnic Table': 'पिकनिक मेज़',
+      'Bench': 'बेंच',
+      'Bin': 'कूड़ेदान',
+      'Fence': 'बाड़',
+      'Gate': 'फाटक',
+      'Pond': 'तालाब',
+      'Bridge': 'पुल',
+      'Fountain': 'फव्वारा',
+      'Flag': 'झंडा',
+      'Kite': 'पतंग',
+      'Sign': 'बोर्ड',
+      'Statue': 'मूर्ति',
+      'Scooter': 'स्कूटर',
+      'Helmet': 'हेलमेट',
+      'Bucket': 'बाल्टी',
+      'Spade': 'फावड़ा',
+      'Ladder': 'सीढ़ी',
+      'Ice Cream': 'आइस क्रीम',
+      'Water Bottle': 'पानी की बोतल',
+      'Frisbee': 'फ्रिसबी',
+      'Hula Hoop': 'हुला हूप',
+      'Cricket Bat': 'क्रिकेट बैट',
+      'Badminton Racket': 'बैडमिंटन रैकेट',
+      'Shuttlecock': 'शटलकॉक',
+      'Picnic Basket': 'पिकनिक टोकरी',
+      'Sandwich': 'सैंडविच',
+      'Juice': 'जूस',
+      'Chalk': 'चॉक',
+      'Stick': 'लकड़ी',
+      'Puddle': 'पोखर',
+      'Rainbow': 'इंद्रधनुष',
+      'Ball': 'गेंद',
+      'Football': 'फुटबॉल',
+      'Cricket Ball': 'क्रिकेट गेंद',
+      'Marble': 'कंचा',
+      'Bubble': 'बुलबुला',
+      'Pebble': 'कंकड़',
+      'Beach Ball': 'बीच बॉल',
+      'Pigeon': 'कबूतर',
+      'Crow': 'कौवा',
+      'Sparrow': 'गौरैया',
+      'Butterfly': 'तितली',
+      'Ladybug': 'लेडीबग',
+      'Bee': 'मधुमक्खी',
+      'Mushroom': 'मशरूम',
+      'Leaf': 'पत्ता',
+      'Bush': 'झाड़ी',
+      'Rock': 'चट्टान',
+      'To Swing': 'झूलना',
+      'To Run': 'दौड़ना',
+      'To Jump': 'कूदना',
+      'To Climb': 'चढ़ना',
+      'To Walk': 'चलना',
+      'To Slide': 'फिसलना'
     };
     const labels = [];
     const labelGeometry = new THREE.PlaneGeometry(1, 1);
@@ -460,7 +532,9 @@
       mesh.userData.isPickable = false;
       mesh.userData.baseScale = { x: width, y: height };
       mesh.userData.distanceScale = opts.distanceScale !== false;
-      mesh.raycast = function () {};
+      // Labels stay raycastable on purpose: pointing at a label should speak
+      // its owner's word too, not just pointing at the object itself.
+      mesh.userData.isLabel = true;
       labels.push(mesh);
       return mesh;
     }
@@ -2089,7 +2163,7 @@
     };
 
     const pedestalMat = new THREE.MeshStandardMaterial({ color: CFG.pedestal, roughness: 0.85 });
-    const ACTIVE_WORDS = WORLD === 2 ? WORDS2 : WORDS;
+    const ACTIVE_WORDS = WORLD === 3 ? [] : (WORLD === 2 ? WORDS2 : WORDS);
     ACTIVE_WORDS.forEach((w, i) => {
       const innerCount = Math.ceil(ACTIVE_WORDS.length * 0.4);
       const inner = i < innerCount;
@@ -2118,8 +2192,11 @@
     });
 
     // --- Portal: stand inside the ring to travel to the next world ---
+    // World 3 keeps its portal out in the park instead of the rotunda.
+    const PORTAL_X = WORLD === 3 ? 56 : rotCX;
+    const PORTAL_Z = WORLD === 3 ? 10.2 : rotCZ;
     const portalGroup = new THREE.Group();
-    portalGroup.position.set(rotCX, 0.02, rotCZ);
+    portalGroup.position.set(PORTAL_X, 0.02, PORTAL_Z);
     const portalRing = new THREE.Mesh(
       new THREE.TorusGeometry(0.95, 0.055, 10, 48),
       new THREE.MeshStandardMaterial({
@@ -2142,12 +2219,535 @@
     scene.add(portalGroup);
 
     const portalGlow = new THREE.PointLight(0x66e0ff, 0.6, 4.5);
-    portalGlow.position.set(rotCX, 1.2, rotCZ);
+    portalGlow.position.set(PORTAL_X, 1.2, PORTAL_Z);
     scene.add(portalGlow);
 
-    addRoomSign('World ' + CFG.next, 'अगली दुनिया', new THREE.Vector3(rotCX, 2.6, rotCZ + 1.7));
+    addRoomSign('World ' + CFG.next, 'अगली दुनिया', new THREE.Vector3(PORTAL_X, 2.6, PORTAL_Z + 1.7));
 
     addRoomSign('Room 8', 'आठवाँ कमरा', new THREE.Vector3(24.3, 2.4, 0));
+
+    // ============================================================
+    // --- World 3: Playground park ---
+    // ============================================================
+    function buildPark() {
+      const PX = 56;
+      const PZ = 0;
+      const park = new THREE.Group();
+      scene.add(park);
+
+      // grass
+      const grassTex = makeCanvasTexture(256, (ctx, w, h) => {
+        ctx.fillStyle = '#5f8f45';
+        ctx.fillRect(0, 0, w, h);
+        for (let i = 0; i < 900; i++) {
+          ctx.fillStyle = Math.random() > 0.5 ? 'rgba(110,160,80,0.5)' : 'rgba(70,110,50,0.5)';
+          ctx.fillRect(Math.random() * w, Math.random() * h, 2, 4);
+        }
+      }, 16, 12);
+      const ground = new THREE.Mesh(
+        new THREE.PlaneGeometry(46, 34),
+        new THREE.MeshStandardMaterial({ map: grassTex, roughness: 0.95 })
+      );
+      ground.rotation.x = -Math.PI / 2;
+      ground.position.set(PX, 0.001, PZ);
+      ground.receiveShadow = true;
+      ground.userData.isEnvironment = true;
+      park.add(ground);
+
+      const sunLight = new THREE.DirectionalLight(0xfff2d0, 0.85);
+      sunLight.position.set(PX + 8, 12, PZ + 6);
+      sunLight.castShadow = true;
+      sunLight.shadow.mapSize.set(1024, 1024);
+      scene.add(sunLight);
+
+      // ---------- builders ----------
+      const M = {
+        swing(g) {
+          B(g, 3.0, 0.08, 0.08, 0x9aa6ad, 0, 2.2, 0);
+          C(g, 0.06, 2.2, 0x8a9096, -1.45, 1.1, 0);
+          C(g, 0.06, 2.2, 0x8a9096, 1.45, 1.1, 0);
+          [-0.7, 0.7].forEach((x) => {
+            C(g, 0.012, 1.5, 0x6b7075, x - 0.25, 1.45, 0);
+            C(g, 0.012, 1.5, 0x6b7075, x + 0.25, 1.45, 0);
+            B(g, 0.55, 0.06, 0.35, 0x7a4a2a, x, 0.68, 0);
+          });
+        },
+        slide(g) {
+          C(g, 0.05, 2.0, 0x8a9096, -1.0, 1.0, -0.8);
+          C(g, 0.05, 2.0, 0x8a9096, -1.0, 1.0, 0.8);
+          B(g, 0.9, 0.08, 1.9, 0xb07a4a, -1.0, 2.0, 0);
+          const ramp = B(g, 2.6, 0.08, 0.9, 0xd9b45a, 0.4, 1.1, 0);
+          ramp.rotation.z = -0.72;
+          B(g, 2.6, 0.3, 0.06, 0xc9a44a, 0.4, 1.2, 0.48).rotation.z = -0.72;
+          B(g, 2.6, 0.3, 0.06, 0xc9a44a, 0.4, 1.2, -0.48).rotation.z = -0.72;
+        },
+        seesaw(g) {
+          C(g, 0.12, 0.5, 0x8a9096, 0, 0.25, 0);
+          const plank = B(g, 2.6, 0.08, 0.35, 0xd9b45a, 0, 0.55, 0);
+          plank.rotation.z = 0.18;
+          B(g, 0.12, 0.06, 0.35, 0x8a9096, -1.2, 0.78, 0);
+          B(g, 0.12, 0.06, 0.35, 0x8a9096, 1.2, 0.32, 0);
+        },
+        roundabout(g) {
+          C(g, 0.1, 0.9, 0x8a9096, 0, 0.45, 0);
+          C(g, 1.4, 0.1, 0xd45a4a, 0, 0.9, 0);
+          for (let i = 0; i < 6; i++) {
+            const a = (i / 6) * Math.PI * 2;
+            C(g, 0.03, 0.5, 0x8a9096, Math.cos(a) * 1.15, 1.2, Math.sin(a) * 1.15);
+          }
+        },
+        bars(g) {
+          C(g, 0.06, 2.3, 0x8a9096, -1.5, 1.15, 0);
+          C(g, 0.06, 2.3, 0x8a9096, 1.5, 1.15, 0);
+          for (let i = 0; i < 5; i++) C(g, 0.03, 2.6, 0xb9c2c7, 0, 2.2, -0.5 + i * 0.25, Math.PI / 2);
+        },
+        wall(g) {
+          const slab = B(g, 2.4, 2.6, 0.3, 0x9a7fd0, 0, 1.3, 0);
+          slab.rotation.x = -0.12;
+          for (let i = 0; i < 12; i++) {
+            const c = [0xd45a4a, 0x4a86c8, 0xf2c94c, 0x4f8b3b][i % 4];
+            B(g, 0.14, 0.12, 0.1, c, -0.9 + (i % 4) * 0.6, 0.4 + Math.floor(i / 4) * 0.75, 0.2);
+          }
+        },
+        trampoline(g) {
+          addPart(g, new THREE.TorusGeometry(1.2, 0.08, 8, 24), 0x3a3f45, 0, 0.85, 0, Math.PI / 2, 0, 0);
+          C(g, 1.15, 0.05, 0x22262b, 0, 0.85, 0);
+          for (let i = 0; i < 4; i++) {
+            const a = (i / 4) * Math.PI * 2;
+            C(g, 0.05, 0.85, 0x6b7075, Math.cos(a) * 1.0, 0.42, Math.sin(a) * 1.0);
+          }
+        },
+        sandbox(g) {
+          B(g, 3.0, 0.35, 0.12, 0xb07a4a, 0, 0.17, -1.4);
+          B(g, 3.0, 0.35, 0.12, 0xb07a4a, 0, 0.17, 1.4);
+          B(g, 0.12, 0.35, 2.8, 0xb07a4a, -1.4, 0.17, 0);
+          B(g, 0.12, 0.35, 2.8, 0xb07a4a, 1.4, 0.17, 0);
+          B(g, 2.6, 0.16, 2.6, 0xe8d08a, 0, 0.12, 0);
+        },
+        net(g) {
+          C(g, 0.05, 2.4, 0x9aa6ad, -2.4, 1.2, 0);
+          C(g, 0.05, 2.4, 0x9aa6ad, 2.4, 1.2, 0);
+          const mesh = new THREE.Mesh(
+            new THREE.PlaneGeometry(4.8, 0.9),
+            new THREE.MeshStandardMaterial({
+              map: makeCanvasTexture(64, (ctx, w, h) => {
+                ctx.clearRect(0, 0, w, h);
+                ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+                ctx.lineWidth = 2;
+                for (let i = 0; i <= w; i += 8) {
+                  ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, h); ctx.stroke();
+                  ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(w, i); ctx.stroke();
+                }
+              }, 6, 1),
+              transparent: true, side: THREE.DoubleSide, roughness: 0.9
+            })
+          );
+          mesh.position.set(0, 1.9, 0);
+          g.add(mesh);
+        },
+        bench(g) {
+          B(g, 1.7, 0.08, 0.45, 0x9a7a58, 0, 0.45, 0);
+          B(g, 1.7, 0.4, 0.08, 0x9a7a58, 0, 0.68, -0.2);
+          C(g, 0.05, 0.45, 0x6b7075, -0.7, 0.22, 0.15);
+          C(g, 0.05, 0.45, 0x6b7075, 0.7, 0.22, 0.15);
+        },
+        table(g) {
+          B(g, 1.6, 0.08, 0.9, 0xa87a4e, 0, 0.75, 0);
+          B(g, 1.6, 0.07, 0.35, 0xa87a4e, 0, 0.45, 0.75);
+          B(g, 1.6, 0.07, 0.35, 0xa87a4e, 0, 0.45, -0.75);
+          C(g, 0.05, 0.75, 0x7a5a3a, -0.6, 0.38, 0);
+          C(g, 0.05, 0.75, 0x7a5a3a, 0.6, 0.38, 0);
+        },
+        bin(g) {
+          C(g, 0.28, 0.7, 0x3a6f4a, 0, 0.35, 0);
+          C(g, 0.3, 0.06, 0x2a5236, 0, 0.72, 0);
+        },
+        fountain(g) {
+          C(g, 1.0, 0.35, 0xb9c2c7, 0, 0.17, 0);
+          C(g, 0.12, 0.9, 0xb9c2c7, 0, 0.45, 0);
+          C(g, 0.5, 0.06, 0x8fd0ea, 0, 0.95, 0);
+          C(g, 0.05, 0.5, 0xbfe6f5, 0, 1.2, 0);
+        },
+        lamp(g) {
+          C(g, 0.07, 3.0, 0x3a3f45, 0, 1.5, 0);
+          addPart(g, new THREE.SphereGeometry(0.2, 12, 8), 0xfff0c0, 0, 3.1, 0);
+        },
+        fence(g) {
+          for (let i = 0; i < 4; i++) C(g, 0.05, 1.1, 0xc9c2b0, -1.5 + i * 1.0, 0.55, 0);
+          B(g, 3.2, 0.06, 0.04, 0xc9c2b0, 0, 0.9, 0);
+          B(g, 3.2, 0.06, 0.04, 0xc9c2b0, 0, 0.45, 0);
+        },
+        gate(g) {
+          C(g, 0.08, 1.6, 0x9a7a58, -0.9, 0.8, 0);
+          C(g, 0.08, 1.6, 0x9a7a58, 0.9, 0.8, 0);
+          B(g, 1.7, 0.08, 0.06, 0x9a7a58, 0, 1.5, 0);
+          for (let i = 0; i < 5; i++) C(g, 0.03, 1.2, 0x9a7a58, -0.6 + i * 0.3, 0.75, 0);
+        },
+        tree(g, o) {
+          C(g, 0.14, 1.6, 0x6b4a2f, 0, 0.8, 0);
+          const c = (o && o.c) || 0x4f8b3b;
+          addPart(g, new THREE.SphereGeometry(0.95, 14, 10), c, 0, 2.0, 0);
+          addPart(g, new THREE.SphereGeometry(0.7, 14, 10), c, 0.55, 2.4, 0.2);
+          addPart(g, new THREE.SphereGeometry(0.65, 14, 10), c, -0.5, 2.5, -0.15);
+        },
+        bush(g) {
+          addPart(g, new THREE.SphereGeometry(0.45, 12, 9), 0x4f7c3a, 0, 0.4, 0);
+          addPart(g, new THREE.SphereGeometry(0.3, 12, 9), 0x5f9b47, 0.35, 0.3, 0.1);
+        },
+        flower(g, o) {
+          C(g, 0.02, 0.4, 0x4f8b3b, 0, 0.2, 0);
+          addPart(g, new THREE.SphereGeometry(0.09, 12, 8), (o && o.c) || 0xe86a8a, 0, 0.44, 0);
+          for (let i = 0; i < 5; i++) {
+            const a = (i / 5) * Math.PI * 2;
+            const p = addPart(g, new THREE.SphereGeometry(0.06, 10, 8), (o && o.c) || 0xe86a8a,
+              Math.cos(a) * 0.1, 0.44, Math.sin(a) * 0.1);
+            p.scale.set(1, 0.5, 1);
+          }
+        },
+        rock(g) {
+          const a = B(g, 0.5, 0.35, 0.45, 0x6f757c, 0, 0.18, 0); a.rotation.set(0.2, 0.5, 0.1);
+          const b = B(g, 0.3, 0.25, 0.3, 0x7f858c, 0.35, 0.12, 0.15); b.rotation.set(0.4, 0.2, 0.3);
+        },
+        pond(g) {
+          C(g, 1.6, 0.06, 0x2f6f96, 0, 0.03, 0);
+          addPart(g, new THREE.TorusGeometry(1.6, 0.08, 6, 24), 0x8a8f7a, 0, 0.05, 0, Math.PI / 2, 0, 0);
+        },
+        bridge(g) {
+          const arc = addPart(g, new THREE.TorusGeometry(1.1, 0.12, 6, 20, Math.PI), 0x9a7a58, 0, 0.0, 0, 0, 0, 0);
+          B(g, 2.2, 0.1, 0.8, 0xa87a4e, 0, 1.1, 0);
+          B(g, 2.2, 0.5, 0.06, 0x9a7a58, 0, 1.35, 0.4);
+        },
+        flag(g) {
+          C(g, 0.05, 2.6, 0xc9c2b0, 0, 1.3, 0);
+          B(g, 0.9, 0.55, 0.03, 0xd45a4a, 0.47, 2.2, 0);
+        },
+        kite(g) {
+          const body = B(g, 0.5, 0.5, 0.03, 0xf2c94c, 0, 1.6, 0);
+          body.rotation.z = Math.PI / 4;
+          for (let i = 0; i < 3; i++) B(g, 0.06, 0.12, 0.02, 0xd45a4a, 0, 1.2 - i * 0.2, 0);
+        },
+        scooter(g) {
+          B(g, 0.6, 0.05, 0.16, 0x4a86c8, 0, 0.16, 0);
+          C(g, 0.1, 0.06, 0x22262b, -0.25, 0.08, 0, Math.PI / 2);
+          C(g, 0.1, 0.06, 0x22262b, 0.25, 0.08, 0, Math.PI / 2);
+          C(g, 0.03, 0.9, 0x9aa6ad, 0.28, 0.6, 0);
+          B(g, 0.4, 0.04, 0.04, 0x9aa6ad, 0.28, 1.02, 0);
+        },
+        helmet(g) {
+          const dome = addPart(g, new THREE.SphereGeometry(0.2, 14, 10), 0xd45a4a, 0, 0.14, 0);
+          dome.scale.set(1, 0.8, 1);
+          B(g, 0.4, 0.04, 0.12, 0xb84a3a, 0, 0.06, 0.1);
+        },
+        bucket(g) {
+          C(g, 0.16, 0.28, 0xd45a4a, 0, 0.14, 0, 0, 0.9);
+          addPart(g, new THREE.TorusGeometry(0.15, 0.012, 6, 16, Math.PI), 0x9aa6ad, 0, 0.28, 0);
+        },
+        spade(g) {
+          C(g, 0.025, 0.5, 0x9a7a58, 0, 0.35, 0);
+          B(g, 0.22, 0.22, 0.03, 0xb9c2c7, 0, 0.1, 0);
+        },
+        ladder(g) {
+          C(g, 0.03, 2.0, 0x9a7a58, -0.25, 1.0, 0);
+          C(g, 0.03, 2.0, 0x9a7a58, 0.25, 1.0, 0);
+          for (let i = 0; i < 6; i++) C(g, 0.02, 0.5, 0x9a7a58, 0, 0.25 + i * 0.32, 0, Math.PI / 2);
+        },
+        iceCream(g) {
+          const cone = K(g, 0.1, 0.3, 0xd9a86a, 0, 0.15, 0);
+          cone.rotation.x = Math.PI;
+          addPart(g, new THREE.SphereGeometry(0.11, 12, 9), 0xf2b6c8, 0, 0.34, 0);
+        },
+        bottle(g) {
+          C(g, 0.07, 0.3, 0x8fd0ea, 0, 0.15, 0);
+          C(g, 0.04, 0.08, 0x3f7fa8, 0, 0.34, 0);
+        },
+        sign(g) {
+          C(g, 0.04, 1.6, 0x9a7a58, 0, 0.8, 0);
+          B(g, 0.7, 0.45, 0.04, 0xf2efe6, 0, 1.5, 0);
+        },
+        statue(g) {
+          C(g, 0.3, 0.4, 0xb9c2c7, 0, 0.2, 0);
+          C(g, 0.12, 0.8, 0x8a9096, 0, 0.8, 0);
+          addPart(g, new THREE.SphereGeometry(0.13, 12, 9), 0x9aa6ad, 0, 1.3, 0);
+        },
+        frisbee(g) {
+          addPart(g, new THREE.TorusGeometry(0.18, 0.03, 6, 18), 0xf2c94c, 0, 0.2, 0, Math.PI / 2, 0, 0);
+        },
+        hoop(g) {
+          addPart(g, new THREE.TorusGeometry(0.3, 0.04, 8, 20), 0xd45a4a, 0, 0.7, 0);
+        },
+        bat(g) {
+          C(g, 0.03, 0.3, 0x8a5f3d, 0, 0.15, 0);
+          B(g, 0.12, 0.55, 0.05, 0xd9c27a, 0, 0.55, 0);
+        },
+        racket(g) {
+          C(g, 0.02, 0.3, 0x3a3f45, 0, 0.15, 0);
+          addPart(g, new THREE.TorusGeometry(0.15, 0.02, 6, 16), 0x3a3f45, 0, 0.5, 0);
+        },
+        shuttlecock(g) {
+          K(g, 0.07, 0.14, 0xffffff, 0, 0.07, 0);
+          for (let i = 0; i < 5; i++) {
+            const a = (i / 5) * Math.PI * 2;
+            B(g, 0.02, 0.16, 0.02, 0xf2f2f2, Math.cos(a) * 0.05, 0.2, Math.sin(a) * 0.05);
+          }
+        },
+        basket(g) {
+          B(g, 0.4, 0.22, 0.3, 0xc9a44a, 0, 0.11, 0);
+          addPart(g, new THREE.TorusGeometry(0.14, 0.015, 6, 16, Math.PI), 0x8a5f3d, 0, 0.22, 0);
+        },
+        sandwich(g) {
+          B(g, 0.3, 0.05, 0.22, 0xe8c26a, 0, 0.03, 0);
+          B(g, 0.28, 0.03, 0.2, 0x4f8b3b, 0, 0.06, 0);
+          B(g, 0.3, 0.05, 0.22, 0xe8c26a, 0, 0.1, 0);
+        },
+        juice(g) {
+          B(g, 0.14, 0.24, 0.1, 0xf29a4a, 0, 0.12, 0);
+          C(g, 0.012, 0.16, 0xffffff, 0.03, 0.3, 0);
+        },
+        chalk(g) {
+          C(g, 0.03, 0.14, 0xf2f2f2, 0, 0.07, 0, 0, 0.9);
+        },
+        stick(g) {
+          const s = C(g, 0.025, 0.7, 0x6b4a2f, 0, 0.35, 0);
+          s.rotation.z = 0.35;
+        },
+        puddle(g) {
+          const p = C(g, 0.45, 0.02, 0x6fa8d8, 0, 0.015, 0);
+          p.scale.set(1, 1, 0.7);
+        },
+        rainbow(g) {
+          [0xd45a6a, 0xf2a64a, 0xf2d64b, 0x5fb85f, 0x4a86c8].forEach((c, i) => {
+            addPart(g, new THREE.TorusGeometry(1.0 + i * 0.09, 0.03, 6, 24, Math.PI), c, 0, 0.2, 0);
+          });
+        },
+        ball(g, o) {
+          addPart(g, new THREE.SphereGeometry((o && o.r) || 0.16, 16, 12), (o && o.c) || 0xffffff, 0, (o && o.r) || 0.16, 0);
+        },
+        bird(g, o) {
+          const body = addPart(g, new THREE.SphereGeometry(0.12, 12, 9), (o && o.c) || 0x6b7280, 0, 0.16, 0);
+          body.scale.set(1.3, 0.9, 0.9);
+          addPart(g, new THREE.SphereGeometry(0.07, 10, 8), (o && o.c) || 0x6b7280, 0.15, 0.24, 0);
+          K(g, 0.03, 0.08, 0xf2c94c, 0.22, 0.24, 0, 0, 0, Math.PI / 2);
+          B(g, 0.12, 0.02, 0.08, (o && o.c) || 0x6b7280, -0.15, 0.18, 0, 0.5);
+        },
+        insect(g, o) {
+          const c = (o && o.c) || 0xf2a64a;
+          C(g, 0.03, 0.12, c, 0, 0.16, 0);
+          addPart(g, new THREE.SphereGeometry(0.05, 10, 8), c, 0, 0.24, 0);
+          for (let i = 0; i < 2; i++) {
+            const w = addPart(g, new THREE.SphereGeometry(0.09, 10, 8), c, i ? 0.09 : -0.09, 0.2, 0);
+            w.scale.set(1, 0.2, 0.7);
+          }
+        },
+        mushroom(g) {
+          C(g, 0.05, 0.2, 0xf2efe6, 0, 0.1, 0);
+          const cap = addPart(g, new THREE.SphereGeometry(0.16, 12, 8), 0xd45a4a, 0, 0.24, 0);
+          cap.scale.set(1, 0.55, 1);
+        },
+        leaf(g) {
+          const l = addPart(g, new THREE.SphereGeometry(0.14, 10, 8), 0x5f9b47, 0, 0.1, 0);
+          l.scale.set(1.4, 0.15, 0.8);
+        },
+        balloon(g, o) {
+          addPart(g, new THREE.SphereGeometry(0.18, 14, 10), (o && o.c) || 0xd45a6a, 0, 0.9, 0);
+          C(g, 0.005, 0.5, 0xcccccc, 0, 0.55, 0);
+        }
+      };
+
+      const place = (name, key, x, z, opt, labelH) => {
+        const g = new THREE.Group();
+        g.position.set(PX + x, 0, PZ + z);
+        M[key](g, opt || {});
+        addRoomPickable(g);
+        const box = new THREE.Box3().setFromObject(g);
+        const h = labelH != null ? labelH : Math.max(0.35, (box.max.y - Math.min(box.min.y, 0)) + 0.25);
+        addLabel(g, name, h);
+        return g;
+      };
+
+      // ---------- big equipment ----------
+      place('Swing', 'swing', -12, 6);
+      place('Slide', 'slide', -6, 9);
+      place('Seesaw', 'seesaw', 0, -9);
+      place('Roundabout', 'roundabout', 8, -9);
+      place('Monkey Bars', 'bars', -12, -6);
+      place('Climbing Wall', 'wall', 12, -6);
+      place('Trampoline', 'trampoline', 12, 8);
+      place('Sandbox', 'sandbox', -6, -10);
+      place('Picnic Table', 'table', 3, 9);
+
+      // ---------- volleyball court (sand, net, ball) ----------
+      const sandTex = makeCanvasTexture(256, (ctx, w, h) => {
+        ctx.fillStyle = '#e8d08a';
+        ctx.fillRect(0, 0, w, h);
+        for (let i = 0; i < 1200; i++) {
+          ctx.fillStyle = Math.random() > 0.5 ? 'rgba(230,205,140,0.8)' : 'rgba(205,180,120,0.8)';
+          ctx.fillRect(Math.random() * w, Math.random() * h, 2, 2);
+        }
+      }, 5, 3);
+      const court = new THREE.Group();
+      court.position.set(PX + 1, 0, PZ + 0.5);
+      const sand = new THREE.Mesh(
+        new THREE.PlaneGeometry(13, 7),
+        new THREE.MeshStandardMaterial({ map: sandTex, roughness: 0.95 })
+      );
+      sand.rotation.x = -Math.PI / 2;
+      sand.position.y = 0.012;
+      sand.receiveShadow = true;
+      court.add(sand);
+      [[0, -3.1, 13, 0.06], [0, 3.1, 13, 0.06], [-6.2, 0, 0.06, 6.2], [6.2, 0, 0.06, 6.2]]
+        .forEach((l) => {
+          const line = new THREE.Mesh(
+            new THREE.PlaneGeometry(l[2], l[3]),
+            new THREE.MeshBasicMaterial({ color: 0xffffff })
+          );
+          line.rotation.x = -Math.PI / 2;
+          line.position.set(l[0], 0.02, l[1]);
+          court.add(line);
+        });
+      const netGroup = new THREE.Group();
+      netGroup.position.set(0, 0, 0);
+      M.net(netGroup);
+      court.add(netGroup);
+      addRoomPickable(court);
+      addLabel(court, 'Sand', 0.4);
+      addLabel(netGroup, 'Net', 2.5);
+
+      const vb = new THREE.Group();
+      vb.position.set(PX - 2.5, 0, PZ + 2.2);
+      addPart(vb, new THREE.SphereGeometry(0.16, 16, 12), 0xffffff, 0, 0.16, 0);
+      [0, 1, 2].forEach((i) => {
+        const seam = addPart(vb, new THREE.TorusGeometry(0.16, 0.012, 6, 18), 0x4a86c8, 0, 0.16, 0);
+        seam.rotation.set(i * 1.05, i * 0.6, 0);
+      });
+      addRoomPickable(vb);
+      addLabel(vb, 'Volleyball', 0.45);
+
+      // ---------- props scattered on a grid ----------
+      const props = [
+        ['Tree', 'tree', { c: 0x4f8b3b }], ['Tree', 'tree', { c: 0x3f7c3a }],
+        ['Tree', 'tree', { c: 0x5f9b47 }], ['Tree', 'tree', { c: 0x467a34 }],
+        ['Bush', 'bush', {}], ['Bush', 'bush', {}], ['Bush', 'bush', {}],
+        ['Flower', 'flower', { c: 0xe86a8a }], ['Flower', 'flower', { c: 0xf2c94c }],
+        ['Flower', 'flower', { c: 0xd45a6a }], ['Flower', 'flower', { c: 0x9a7fd0 }],
+        ['Bench', 'bench', {}], ['Bench', 'bench', {}], ['Bench', 'bench', {}],
+        ['Lamp', 'lamp', {}], ['Lamp', 'lamp', {}], ['Lamp', 'lamp', {}],
+        ['Bin', 'bin', {}], ['Bin', 'bin', {}],
+        ['Fence', 'fence', {}], ['Fence', 'fence', {}], ['Fence', 'fence', {}],
+        ['Gate', 'gate', {}], ['Rock', 'rock', {}], ['Rock', 'rock', {}],
+        ['Pond', 'pond', {}], ['Bridge', 'bridge', {}], ['Fountain', 'fountain', {}],
+        ['Flag', 'flag', {}], ['Kite', 'kite', {}], ['Sign', 'sign', {}], ['Sign', 'sign', {}],
+        ['Statue', 'statue', {}], ['Scooter', 'scooter', {}], ['Helmet', 'helmet', {}],
+        ['Bucket', 'bucket', {}], ['Spade', 'spade', {}], ['Ladder', 'ladder', {}],
+        ['Ice Cream', 'iceCream', {}], ['Water Bottle', 'bottle', {}],
+        ['Frisbee', 'frisbee', {}], ['Hula Hoop', 'hoop', {}], ['Cricket Bat', 'bat', {}],
+        ['Badminton Racket', 'racket', {}], ['Shuttlecock', 'shuttlecock', {}],
+        ['Picnic Basket', 'basket', {}], ['Sandwich', 'sandwich', {}], ['Juice', 'juice', {}],
+        ['Chalk', 'chalk', {}], ['Stick', 'stick', {}], ['Stick', 'stick', {}],
+        ['Puddle', 'puddle', {}], ['Rainbow', 'rainbow', {}],
+        ['Ball', 'ball', { c: 0xf2c94c, r: 0.18 }], ['Football', 'ball', { c: 0xf2f2f2, r: 0.15 }],
+        ['Cricket Ball', 'ball', { c: 0xa8323a, r: 0.06 }],
+        ['Marble', 'ball', { c: 0x8fd0ea, r: 0.05 }], ['Bubble', 'ball', { c: 0xbfe6f5, r: 0.1 }],
+        ['Pebble', 'ball', { c: 0x9aa6ad, r: 0.07 }], ['Beach Ball', 'ball', { c: 0xd45a6a, r: 0.22 }],
+        ['Pigeon', 'bird', { c: 0x8a9096 }], ['Crow', 'bird', { c: 0x22262b }],
+        ['Sparrow', 'bird', { c: 0xa87a4e }], ['Butterfly', 'insect', { c: 0xf2a64a }],
+        ['Butterfly', 'insect', { c: 0x4a86c8 }], ['Ladybug', 'insect', { c: 0xd45a4a }],
+        ['Bee', 'insect', { c: 0xf2c94c }], ['Mushroom', 'mushroom', {}], ['Mushroom', 'mushroom', {}],
+        ['Leaf', 'leaf', {}], ['Leaf', 'leaf', {}], ['Balloon', 'balloon', { c: 0xd45a6a }],
+        ['Balloon', 'balloon', { c: 0x4a86c8 }]
+      ];
+
+      // deterministic grid, skipping cells that the court or equipment occupy
+      let pi = 0;
+      const occupied = (x, z) => (Math.abs(x - 1) < 7.2 && Math.abs(z - 0.5) < 4.2) ||
+        [['-12,6'], ['-6,9'], ['0,-9'], ['8,-9'], ['-12,-6'], ['12,-6'], ['12,8'], ['-6,-10'], ['3,9']]
+          .some((k) => k[0] === x + ',' + z);
+      for (let gx = 0; gx < 9 && pi < props.length; gx++) {
+        for (let gz = 0; gz < 7 && pi < props.length; gz++) {
+          const x = -17 + gx * 4.2;
+          const z = -13 + gz * 4.4;
+          if (occupied(x, z)) continue;
+          const p = props[pi++];
+          place(p[0], p[1], x, z, p[2]);
+        }
+      }
+
+      // ---------- animated verbs ----------
+      const makePerson = (colors) => {
+        const g = new THREE.Group();
+        g.add(createBox(0.42, 0.55, 0.24, colors.shirt, { x: 0, y: 1.12, z: 0 }));
+        g.add(createBox(0.26, 0.28, 0.26, colors.skin, { x: 0, y: 1.56, z: 0 }));
+        g.add(createBox(0.38, 0.22, 0.24, colors.pants, { x: 0, y: 0.78, z: 0 }));
+        const armL = makeLimb(0.13, 0.6, 0.13, colors.skin, -0.28, 1.34);
+        const armR = makeLimb(0.13, 0.6, 0.13, colors.skin, 0.28, 1.34);
+        const legL = makeLimb(0.15, 0.72, 0.15, colors.pants, -0.11, 0.72);
+        const legR = makeLimb(0.15, 0.72, 0.15, colors.pants, 0.11, 0.72);
+        g.add(armL, armR, legL, legR);
+        return { g, armL, armR, legL, legR };
+      };
+
+      const verbSpots = [
+        ['To Swing', 'झूलना', -12, 6.6, 0],
+        ['To Run', 'दौड़ना', -3, 12.5, 1],
+        ['To Jump', 'कूदना', 12, 8, 2],
+        ['To Climb', 'चढ़ना', 12, -6.4, 3],
+        ['To Walk', 'चलना', 6, 12.6, 4],
+        ['To Slide', 'फिसलना', -5.2, 9, 5]
+      ];
+
+      verbSpots.forEach((v, i) => {
+        const p = makePerson({
+          shirt: [0xd45a4a, 0x4a86c8, 0x4f8b3b, 0xf2c94c, 0x9a7fd0, 0x2bb3a3][i % 6],
+          pants: [0x33415e, 0x3a3f45, 0x2f3a56, 0x3a4a6b, 0x33415e, 0x2f3a56][i % 6],
+          skin: [0xc98b62, 0xb07a52, 0xa06a42][i % 3]
+        });
+        p.g.position.set(PX + v[2], 0, PZ + v[3]);
+        addRoomPickable(p.g);
+        addLabel(p.g, v[0], 2.0);
+
+        const mode = v[4];
+        animatedObjects.push((t) => {
+          if (p.g.parent !== scene) return;
+          const s = Math.sin(t * 5);
+          if (mode === 0) {           // swinging, seated
+            p.g.position.y = 0.55 + Math.abs(Math.sin(t * 2.2)) * 0.05;
+            p.legL.rotation.x = 0.9 + Math.sin(t * 2.2) * 0.35;
+            p.legR.rotation.x = 0.9 + Math.sin(t * 2.2) * 0.35;
+            p.armL.rotation.z = 0.9;
+            p.armR.rotation.z = -0.9;
+          } else if (mode === 1) {    // running
+            p.legL.rotation.x = s * 0.9;
+            p.legR.rotation.x = -s * 0.9;
+            p.armL.rotation.x = -s * 0.8;
+            p.armR.rotation.x = s * 0.8;
+            p.g.position.y = Math.abs(s) * 0.05;
+          } else if (mode === 2) {    // jumping
+            p.g.position.y = Math.abs(Math.sin(t * 3.2)) * 0.55;
+            p.legL.rotation.x = 0.4;
+            p.legR.rotation.x = 0.4;
+            p.armL.rotation.z = 2.2;
+            p.armR.rotation.z = -2.2;
+          } else if (mode === 3) {    // climbing
+            p.armL.rotation.x = Math.sin(t * 3) * 1.1;
+            p.armR.rotation.x = Math.sin(t * 3 + Math.PI) * 1.1;
+            p.legL.rotation.x = Math.sin(t * 3 + Math.PI) * 0.5;
+            p.legR.rotation.x = Math.sin(t * 3) * 0.5;
+            p.g.position.y = 0.1 + (Math.sin(t * 0.4) * 0.5 + 0.5) * 0.6;
+          } else if (mode === 4) {    // walking
+            p.legL.rotation.x = Math.sin(t * 2.2) * 0.45;
+            p.legR.rotation.x = -Math.sin(t * 2.2) * 0.45;
+            p.armL.rotation.x = -Math.sin(t * 2.2) * 0.35;
+            p.armR.rotation.x = Math.sin(t * 2.2) * 0.35;
+          } else {                    // sliding down
+            const k = (Math.sin(t * 0.8) * 0.5 + 0.5);
+            p.g.position.y = 1.75 - k * 1.2;
+            p.g.position.x = PX - 6.2 + k * 1.8;
+            p.armL.rotation.z = 1.6;
+            p.armR.rotation.z = -1.6;
+          }
+        });
+      });
+    }
+    if (WORLD === 3) buildPark();
 
     // --- Imported high-poly glTF assets ---
     function placeGLTF(name, opts) {
@@ -3193,8 +3793,8 @@
       const headPos = renderer.xr.isPresenting
         ? renderer.xr.getCamera(camera).getWorldPosition(portalTmp)
         : camera.getWorldPosition(portalTmp);
-      const pdx = headPos.x - rotCX;
-      const pdz = headPos.z - rotCZ;
+      const pdx = headPos.x - PORTAL_X;
+      const pdz = headPos.z - PORTAL_Z;
       const inPortal = (pdx * pdx + pdz * pdz) < 0.81 && headPos.y < 2.4;
       if (inPortal) {
         portalDwell += delta;
