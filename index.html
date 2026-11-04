@@ -183,6 +183,23 @@
     document.title = CFG.name + ' - Memory Palace';
     const infoBoot = document.getElementById('info');
     if (infoBoot) infoBoot.textContent = 'Loading ' + CFG.name + ' ...';
+
+    // Never fail silently: surface any script error in the HUD instead of
+    // leaving the user staring at a black screen.
+    window.addEventListener('error', (e) => {
+      const el = document.getElementById('info');
+      if (el) el.textContent = 'ERROR: ' + (e.message || 'script error');
+      console.error('PALACE ERROR', e.error || e.message);
+    });
+    const runWorld = (fn) => {
+      try {
+        fn();
+      } catch (err) {
+        console.error('WORLD BUILD ERROR', err);
+        const el = document.getElementById('info');
+        if (el) el.textContent = 'Build error: ' + err.message;
+      }
+    };
     document.body.appendChild(renderer.domElement);
 
     const pmremGenerator = new THREE.PMREMGenerator(renderer);
@@ -2880,7 +2897,7 @@
         });
       });
     }
-    if (WORLD === 5) buildPark();
+    if (WORLD === 5) runWorld(buildPark);
 
     // ============================================================
     // --- World 4: Sentence Workshop ---
@@ -3145,7 +3162,7 @@
       addRoomSign('Sentence Workshop', 'वाक्य कार्यशाला', new THREE.Vector3(CX, 3.9, 24.4));
       SENTENCE_GAME = state;
     }
-    if (WORLD === 6) buildSentenceLab();
+    if (WORLD === 6) runWorld(buildSentenceLab);
 
     // ============================================================
     // --- World 1: Frontier Homestead & Fair ---
@@ -3676,7 +3693,7 @@
 
       addRoomSign('Frontier Homestead', 'सीमांत घर', new THREE.Vector3(FX, 3.6, 7.5));
     }
-    if (WORLD === 2) buildFrontier();
+    if (WORLD === 2) runWorld(buildFrontier);
 
     // ============================================================
     // --- World 1: Science Museum ---
@@ -3829,7 +3846,7 @@
           B(g, 0.16, 0.1, 0.12, 0x2f2f33, 0.12, 1.0, 0.32);
         },
         mummy(g) {
-          const body = addPart(g, new THREE.CapsuleGeometry ? new THREE.CapsuleGeometry(0.28, 1.3, 4, 8) : new THREE.CylinderGeometry(0.28, 0.28, 1.6, 10), 0xd9c9a8, 0, 0.85, 0);
+          const body = addPart(g, new THREE.CylinderGeometry(0.28, 0.24, 1.6, 12), 0xd9c9a8, 0, 0.85, 0);
           for (let i = 0; i < 5; i++) addPart(g, new THREE.TorusGeometry(0.29, 0.02, 5, 14), 0xb8a888, 0, 0.4 + i * 0.3, 0, Math.PI / 2, 0, 0);
           addPart(g, new THREE.SphereGeometry(0.22, 12, 9), 0xe0d2b0, 0, 1.75, 0);
         },
@@ -4109,7 +4126,7 @@
 
       addRoomSign('Science Museum', 'विज्ञान संग्रहालय', new THREE.Vector3(MX, 3.4, MZ + 8.4));
     }
-    if (WORLD === 1) buildMuseum();
+    if (WORLD === 1) runWorld(buildMuseum);
 
     // --- Imported high-poly glTF assets ---
     function placeGLTF(name, opts) {
