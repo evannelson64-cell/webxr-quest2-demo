@@ -1,0 +1,5 @@
+All textures are CC0 (public domain) from Poly Haven - https://polyhaven.com/license
+logs: bark_brown_01
+planks: wood_planks
+stone: rock_face
+grass: aerial_grass_rock

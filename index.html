@@ -126,35 +126,44 @@
     // --- Worlds are partitioned by ?world= so one page can serve many palaces ---
     const WORLD = (() => {
       const q = Number(new URLSearchParams(location.search).get('world'));
-      return q === 2 ? 2 : (q === 3 ? 3 : (q === 4 ? 4 : 1));
+      const n = (q >= 2 && q <= 5) ? q : 1;
+      return n;
     })();
     const WORLD_CFG = {
       1: {
-        name: 'World 1 - Home & Food',
+        name: 'World 1 - Frontier Homestead',
         next: 2,
+        spawn: [-58, 0, 11],
+        clear: 0x9fc4dd,
+        ambient: 0xffe8cc,
+        pedestal: 0x7a6248
+      },
+      2: {
+        name: 'World 2 - Home & Food',
+        next: 3,
         spawn: [0, 0, 2.5],
         clear: 0x0b0f14,
         ambient: 0xffffff,
         pedestal: 0x6d5c4a
       },
-      2: {
-        name: 'World 2 - Animals, Nature & Body',
-        next: 3,
+      3: {
+        name: 'World 3 - Animals, Nature & Body',
+        next: 4,
         spawn: [28.9, 0, 4.3],
         clear: 0x150f1c,
         ambient: 0xd8c4ff,
         pedestal: 0x4a3f6a
       },
-      3: {
-        name: 'World 3 - Playground Park',
-        next: 4,
+      4: {
+        name: 'World 4 - Playground Park',
+        next: 5,
         spawn: [48, 0, 14],
         clear: 0x87c8ee,
         ambient: 0xfff3dd,
         pedestal: 0x6b7a5a
       },
-      4: {
-        name: 'World 4 - Sentence Workshop',
+      5: {
+        name: 'World 5 - Sentence Workshop',
         next: 1,
         spawn: [0, 0, 15.5],
         clear: 0x140f18,
@@ -527,7 +536,57 @@
       'Sings': 'गाती',
       'Man': 'आदमी',
       'New': 'नई',
-      'Reads': 'पढ़ता'
+      'Reads': 'पढ़ता',
+      'Fireplace': 'अंगीठी',
+      'Firewood': 'जलाऊ लकड़ी',
+      'Bear Skin Rug': 'भालू की खाल',
+      'Gun Rack': 'बंदूक रैक',
+      'Hat Rack': 'टोपी रैक',
+      'Rocking Chair': 'झूलती कुर्सी',
+      'Candle': 'मोमबत्ती',
+      'Candy Bowl': 'कैंडी का कटोरा',
+      'Bunk Bed': 'बंक बेड',
+      'Quilt': 'रजाई',
+      'Lantern': 'लालटेन',
+      'Desk': 'डेस्क',
+      'Calculator': 'कैलकुलेटर',
+      'Slide Rule': 'स्लाइड रूल',
+      'Globe': 'ग्लोब',
+      'Pot': 'बर्तन',
+      'Jars': 'जार',
+      'Carrot': 'गाजर',
+      'Potato': 'आलू',
+      'Pepper': 'मिर्च',
+      'Peas': 'मटर',
+      'Beans': 'फलियाँ',
+      'Tomato': 'टमाटर',
+      'Pumpkin': 'कद्दू',
+      'Corn': 'मक्का',
+      'Scarecrow': 'बिजूका',
+      'Watering Can': 'सिंचाई का डिब्बा',
+      'Wheelbarrow': 'ठेला',
+      'Apple Tree': 'सेब का पेड़',
+      'Tent': 'तंबू',
+      'Peg': 'खूँटी',
+      'Pine Tree': 'देवदार',
+      'Campfire': 'अलाव',
+      'Log Seat': 'लट्ठा',
+      'Compass': 'कम्पास',
+      'Canteen': 'पानी का बर्तन',
+      'Backpack': 'बस्ता',
+      'Axe': 'कुल्हाड़ी',
+      'Ticket Booth': 'टिकट खिड़की',
+      'Ticket': 'टिकट',
+      'Ferris Wheel': 'फेरिस व्हील',
+      'Rollercoaster': 'रोलरकोस्टर',
+      'Bleachers': 'दर्शक दीर्घा',
+      'Popcorn': 'पॉपकॉर्न',
+      'Stroller': 'स्ट्रोलर',
+      'Hose': 'नली',
+      'Animal Pen': 'जानवरों का बाड़ा',
+      'Water Trough': 'नांद',
+      'Goat': 'बकरी',
+      'Cotton Candy': 'कॉटन कैंडी'
     };
     const labels = [];
     const labelGeometry = new THREE.PlaneGeometry(1, 1);
@@ -2185,7 +2244,7 @@
     };
 
     const pedestalMat = new THREE.MeshStandardMaterial({ color: CFG.pedestal, roughness: 0.85 });
-    const ACTIVE_WORDS = (WORLD === 3 || WORLD === 4) ? [] : (WORLD === 2 ? WORDS2 : WORDS);
+    const ACTIVE_WORDS = (WORLD === 4 || WORLD === 5) ? [] : (WORLD === 3 ? WORDS2 : WORDS);
     ACTIVE_WORDS.forEach((w, i) => {
       const innerCount = Math.ceil(ACTIVE_WORDS.length * 0.4);
       const inner = i < innerCount;
@@ -2215,8 +2274,8 @@
 
     // --- Portal: stand inside the ring to travel to the next world ---
     // World 3 keeps its portal out in the park instead of the rotunda.
-    const PORTAL_X = WORLD === 3 ? 56 : (WORLD === 4 ? 3 : rotCX);
-    const PORTAL_Z = WORLD === 3 ? 10.2 : (WORLD === 4 ? 16 : rotCZ);
+    const PORTAL_X = WORLD === 4 ? 56 : (WORLD === 5 ? 3 : (WORLD === 1 ? -58 : rotCX));
+    const PORTAL_Z = WORLD === 4 ? 10.2 : (WORLD === 5 ? 16 : (WORLD === 1 ? 9 : rotCZ));
     const portalGroup = new THREE.Group();
     portalGroup.position.set(PORTAL_X, 0.02, PORTAL_Z);
     const portalRing = new THREE.Mesh(
@@ -2774,7 +2833,7 @@
         });
       });
     }
-    if (WORLD === 3) buildPark();
+    if (WORLD === 4) buildPark();
 
     // ============================================================
     // --- World 4: Sentence Workshop ---
@@ -3039,7 +3098,538 @@
       addRoomSign('Sentence Workshop', 'वाक्य कार्यशाला', new THREE.Vector3(CX, 3.9, 24.4));
       SENTENCE_GAME = state;
     }
-    if (WORLD === 4) buildSentenceLab();
+    if (WORLD === 5) buildSentenceLab();
+
+    // ============================================================
+    // --- World 1: Frontier Homestead & Fair ---
+    // ============================================================
+    function buildFrontier() {
+      const FX = -58;
+      const FZ = 0;
+
+      const texLoader = new THREE.TextureLoader();
+      const baseTex = {
+        logs: texLoader.load('assets/textures/logs.jpg'),
+        planks: texLoader.load('assets/textures/planks.jpg'),
+        stone: texLoader.load('assets/textures/stone.jpg'),
+        grass: texLoader.load('assets/textures/grass.jpg')
+      };
+      Object.values(baseTex).forEach((t) => {
+        t.wrapS = THREE.RepeatWrapping;
+        t.wrapT = THREE.RepeatWrapping;
+      });
+      const tiled = (t, x, y) => {
+        const c = t.clone();
+        c.needsUpdate = true;
+        c.wrapS = THREE.RepeatWrapping;
+        c.wrapT = THREE.RepeatWrapping;
+        c.repeat.set(x, y);
+        return c;
+      };
+
+      const logMat = new THREE.MeshStandardMaterial({ map: tiled(baseTex.logs, 5, 1), roughness: 0.95 });
+      const plankMat = new THREE.MeshStandardMaterial({ map: tiled(baseTex.planks, 7, 6), roughness: 0.9 });
+      const stoneMat = new THREE.MeshStandardMaterial({ map: tiled(baseTex.stone, 2, 3), roughness: 0.95 });
+
+      // --- ground ---
+      const ground = new THREE.Mesh(
+        new THREE.PlaneGeometry(46, 40),
+        new THREE.MeshStandardMaterial({ map: tiled(baseTex.grass, 16, 14), roughness: 1 })
+      );
+      ground.rotation.x = -Math.PI / 2;
+      ground.position.set(FX, 0.001, FZ);
+      ground.receiveShadow = true;
+      ground.userData.isEnvironment = true;
+      scene.add(ground);
+
+      const sun = new THREE.DirectionalLight(0xffe8c0, 0.9);
+      sun.position.set(FX + 10, 14, FZ + 8);
+      sun.castShadow = true;
+      sun.shadow.mapSize.set(1024, 1024);
+      scene.add(sun);
+
+      // --- cabin shell ---
+      const cabin = new THREE.Group();
+      cabin.position.set(FX, 0, FZ);
+      scene.add(cabin);
+
+      const addT = (geo, mat, x, y, z, ry) => {
+        const m = new THREE.Mesh(geo, mat);
+        m.position.set(x, y, z);
+        if (ry) m.rotation.y = ry;
+        m.castShadow = true;
+        m.receiveShadow = true;
+        cabin.add(m);
+        return m;
+      };
+
+      addT(new THREE.BoxGeometry(12.4, 0.24, 10.4), plankMat, 0, -0.12, 0);
+      addT(new THREE.BoxGeometry(12.4, 3.1, 0.32), logMat, 0, 1.55, -5.1);
+      addT(new THREE.BoxGeometry(0.32, 3.1, 10.4), logMat, -6.1, 1.55, 0);
+      addT(new THREE.BoxGeometry(0.32, 3.1, 10.4), logMat, 6.1, 1.55, 0);
+      addT(new THREE.BoxGeometry(4.6, 3.1, 0.32), logMat, -3.9, 1.55, 5.1);
+      addT(new THREE.BoxGeometry(4.6, 3.1, 0.32), logMat, 3.9, 1.55, 5.1);
+      addT(new THREE.BoxGeometry(3.2, 1.2, 0.32), logMat, 0, 2.5, 5.1);
+
+      // roof: two slopes + ridge
+      const roofMat = new THREE.MeshStandardMaterial({ map: tiled(baseTex.planks, 6, 4), roughness: 0.95, color: 0x8a5a3a });
+      const slopeL = addT(new THREE.BoxGeometry(7.4, 0.24, 11.2), roofMat, -3.1, 4.15, 0);
+      slopeL.rotation.z = 0.52;
+      const slopeR = addT(new THREE.BoxGeometry(7.4, 0.24, 11.2), roofMat, 3.1, 4.15, 0);
+      slopeR.rotation.z = -0.52;
+      addT(new THREE.BoxGeometry(0.4, 0.3, 11.4), roofMat, 0, 5.02, 0);
+
+      // interior partition: bunk nook (right) and study (left)
+      addT(new THREE.BoxGeometry(0.24, 3.0, 3.6), logMat, 3.2, 1.5, -3.2);
+      addT(new THREE.BoxGeometry(0.24, 3.0, 3.2), logMat, -3.2, 1.5, -3.4);
+
+      // chimney (stone) climbing the outside wall
+      addT(new THREE.BoxGeometry(1.5, 5.6, 1.5), stoneMat, 5.0, 2.8, -4.0);
+
+      // --- builder library ---
+      const M = {
+        fireplace(g) {
+          B(g, 3.0, 0.5, 0.8, 0x8a8f96, 0, 0.25, 0);
+          B(g, 2.6, 1.5, 0.6, 0x7a7f86, 0, 1.05, -0.1);
+          B(g, 2.2, 0.9, 0.5, 0x14100c, 0, 0.65, 0.1);
+          B(g, 2.8, 0.18, 0.7, 0x9aa0a6, 0, 1.75, -0.05);
+          const fire = K(g, 0.28, 0.5, 0xf29a4a, 0, 0.42, 0.2);
+          fire.rotation.x = 0.2;
+          K(g, 0.16, 0.32, 0xf8d76a, 0, 0.4, 0.22);
+        },
+        firewood(g) {
+          for (let i = 0; i < 6; i++) {
+            const l = C(g, 0.11, 0.9, 0x6b4a2f, (i % 3) * 0.24 - 0.24, 0.12 + Math.floor(i / 3) * 0.22, 0, 0, Math.PI / 2);
+            l.rotation.z = Math.PI / 2;
+          }
+        },
+        bearRug(g) {
+          const body = addPart(g, new THREE.SphereGeometry(0.9, 14, 10), 0x4a3626, 0, 0.03, 0);
+          body.scale.set(1.5, 0.06, 1.0);
+          addPart(g, new THREE.SphereGeometry(0.32, 12, 9), 0x3a2a1c, 1.05, 0.06, 0).scale.set(0.9, 0.18, 0.9);
+          [-0.7, 0.7].forEach((z) => {
+            addPart(g, new THREE.SphereGeometry(0.16, 10, 8), 0x3a2a1c, -1.1, 0.05, z * 0.6).scale.set(0.9, 0.2, 0.7);
+          });
+        },
+        gunRack(g) {
+          B(g, 1.8, 0.08, 0.12, 0x6b4a2f, 0, 1.5, 0);
+          B(g, 1.8, 0.08, 0.12, 0x6b4a2f, 0, 1.0, 0);
+          [-0.55, 0.55].forEach((x) => {
+            B(g, 0.06, 0.9, 0.06, 0x4a3220, x, 1.2, 0.05);
+            B(g, 0.05, 0.5, 0.05, 0x2f2f33, x + 0.05, 1.75, 0.05, 0.1);
+          });
+        },
+        hatRack(g) {
+          C(g, 0.05, 1.9, 0x6b4a2f, 0, 0.95, 0);
+          C(g, 0.35, 0.05, 0x6b4a2f, 0, 1.85, 0);
+          const hat = addPart(g, new THREE.SphereGeometry(0.24, 12, 8), 0x5a4632, 0.3, 1.95, 0);
+          hat.scale.set(1, 0.6, 1);
+          C(g, 0.32, 0.04, 0x5a4632, 0.3, 1.86, 0);
+        },
+        rocker(g) {
+          B(g, 0.6, 0.08, 0.55, 0x7a5a3a, 0, 0.45, 0);
+          B(g, 0.6, 0.6, 0.08, 0x7a5a3a, 0, 0.72, -0.24);
+          [-0.25, 0.25].forEach((x) => {
+            B(g, 0.06, 0.45, 0.06, 0x5a3f28, x, 0.22, 0.2);
+            B(g, 0.06, 0.45, 0.06, 0x5a3f28, x, 0.22, -0.2);
+          });
+          const rock = B(g, 0.7, 0.06, 0.7, 0x5a3f28, 0, 0.03, 0);
+          rock.rotation.x = 0.0;
+        },
+        table(g) {
+          B(g, 1.5, 0.08, 0.9, 0x8a5f3d, 0, 0.72, 0);
+          [-0.6, 0.6].forEach((x) => B(g, 0.08, 0.7, 0.08, 0x6b4a2f, x, 0.36, 0.35));
+          [-0.6, 0.6].forEach((x) => B(g, 0.08, 0.7, 0.08, 0x6b4a2f, x, 0.36, -0.35));
+        },
+        candle(g) {
+          C(g, 0.05, 0.22, 0xf2efe0, 0, 0.11, 0);
+          addPart(g, new THREE.SphereGeometry(0.035, 8, 6), 0xffd166, 0, 0.26, 0);
+          C(g, 0.06, 0.02, 0x9aa6ad, 0, 0.01, 0);
+        },
+        candyBowl(g) {
+          C(g, 0.18, 0.1, 0x2f6f96, 0, 0.05, 0);
+          [[-0.06, 0.06], [0.06, 0.04], [0, -0.05], [0.08, -0.04]].forEach((p, i) => {
+            const c = [0xd45a6a, 0xf2c94c, 0x5fb85f, 0x9a7fd0][i];
+            addPart(g, new THREE.SphereGeometry(0.045, 8, 6), c, p[0], 0.1, p[1]);
+          });
+        },
+        bunk(g) {
+          [0.35, 1.55].forEach((y) => {
+            B(g, 2.0, 0.12, 1.0, 0x8a5f3d, 0, y, 0);
+            B(g, 1.9, 0.14, 0.9, 0xe8dcc0, 0, y + 0.12, 0);
+            B(g, 0.5, 0.12, 0.7, 0xf2f0e8, -0.7, y + 0.22, 0);
+          });
+          [-0.95, 0.95].forEach((x) => B(g, 0.1, 1.9, 0.1, 0x6b4a2f, x, 0.95, -0.45));
+          B(g, 2.0, 0.1, 0.1, 0x6b4a2f, 0, 1.9, -0.45);
+        },
+        quilt(g) {
+          B(g, 1.9, 0.06, 0.9, 0xa8524a, 0, 0.02, 0);
+          for (let i = 0; i < 3; i++) B(g, 0.3, 0.07, 0.9, i % 2 ? 0xd9c27a : 0x4f7c8a, -0.6 + i * 0.6, 0.02, 0);
+        },
+        lantern(g) {
+          B(g, 0.05, 0.3, 0.05, 0x3a3f45, 0, 0.15, 0);
+          C(g, 0.12, 0.24, 0xffd166, 0, 0.42, 0);
+          C(g, 0.13, 0.03, 0x3a3f45, 0, 0.55, 0);
+          C(g, 0.13, 0.03, 0x3a3f45, 0, 0.29, 0);
+        },
+        desk(g) {
+          B(g, 1.6, 0.08, 0.8, 0x8a5f3d, 0, 0.75, 0);
+          [-0.65, 0.65].forEach((x) => B(g, 0.08, 0.75, 0.08, 0x6b4a2f, x, 0.37, 0.3));
+          [-0.65, 0.65].forEach((x) => B(g, 0.08, 0.75, 0.08, 0x6b4a2f, x, 0.37, -0.3));
+        },
+        calculator(g) {
+          B(g, 0.22, 0.03, 0.3, 0x2f3338, 0, 0.02, 0);
+          B(g, 0.18, 0.005, 0.08, 0x7fb8a0, 0, 0.04, -0.09);
+          for (let i = 0; i < 9; i++) B(g, 0.035, 0.008, 0.03, 0xd9d9d9, -0.06 + (i % 3) * 0.06, 0.04, -0.01 + Math.floor(i / 3) * 0.05);
+        },
+        slideRule(g) {
+          B(g, 1.0, 0.03, 0.12, 0xe8dcc0, 0, 0.02, 0);
+          B(g, 0.9, 0.02, 0.06, 0xcfc2a0, 0, 0.045, 0);
+          for (let i = 0; i < 8; i++) B(g, 0.005, 0.01, 0.12, 0x6b5a3a, -0.4 + i * 0.11, 0.04, 0);
+        },
+        bookshelf(g) {
+          B(g, 1.4, 2.0, 0.4, 0x6b4a2f, 0, 1.0, 0);
+          for (let s = 0; s < 3; s++) {
+            B(g, 1.3, 0.06, 0.36, 0x8a5f3d, 0, 0.5 + s * 0.6, 0);
+            for (let i = 0; i < 6; i++) {
+              const c = [0xa8524a, 0x4f7c8a, 0xd9c27a, 0x5fb85f][i % 4];
+              B(g, 0.1, 0.32, 0.24, c, -0.5 + i * 0.2, 0.72 + s * 0.6, 0.02);
+            }
+          }
+        },
+        globe(g) {
+          C(g, 0.03, 0.3, 0x6b4a2f, 0, 0.15, 0);
+          addPart(g, new THREE.SphereGeometry(0.22, 14, 10), 0x4a86c8, 0, 0.48, 0);
+          addPart(g, new THREE.TorusGeometry(0.24, 0.015, 6, 18), 0xd9c27a, 0, 0.48, 0, Math.PI / 2, 0, 0);
+        },
+        stove(g) {
+          B(g, 0.9, 0.8, 0.7, 0x2b2f33, 0, 0.4, 0);
+          C(g, 0.12, 0.05, 0x6b7075, 0, 0.83, 0);
+          C(g, 0.14, 0.05, 0x6b7075, 0, 0.83, 0.22);
+          B(g, 0.2, 0.3, 0.05, 0x3a3f45, 0, 0.5, 0.36);
+        },
+        pot(g) {
+          C(g, 0.16, 0.2, 0x3a3f45, 0, 0.1, 0);
+          C(g, 0.17, 0.02, 0x2b2f33, 0, 0.21, 0);
+          addPart(g, new THREE.TorusGeometry(0.1, 0.012, 6, 12, Math.PI), 0x2b2f33, 0, 0.2, 0);
+        },
+        jars(g) {
+          [[-0.15, 0xd9a86a], [0, 0x9a5f3a], [0.15, 0x7a8f4a]].forEach((p) => {
+            C(g, 0.07, 0.2, p[1], p[0], 0.1, 0);
+            C(g, 0.075, 0.03, 0x6b4a2f, p[0], 0.21, 0);
+          });
+        },
+        carrot(g) {
+          const c = K(g, 0.07, 0.3, 0xe07b2f, 0, 0.15, 0);
+          c.rotation.x = Math.PI;
+          for (let i = 0; i < 3; i++) K(g, 0.03, 0.14, 0x4f8b3b, -0.03 + i * 0.03, 0.34, 0);
+        },
+        potato(g) {
+          const p = addPart(g, new THREE.SphereGeometry(0.12, 10, 8), 0xc9a06a, 0, 0.1, 0);
+          p.scale.set(1.3, 0.8, 1);
+          S(g, 0.02, 0x9a7a4a, 0.05, 0.15, 0.05);
+        },
+        pepper(g) {
+          const p = K(g, 0.09, 0.24, 0xd43b3b, 0, 0.12, 0);
+          p.rotation.x = Math.PI;
+          C(g, 0.02, 0.08, 0x4f8b3b, 0, 0.26, 0);
+        },
+        peas(g) {
+          const pod = addPart(g, new THREE.SphereGeometry(0.14, 10, 8), 0x5fb85f, 0, 0.1, 0);
+          pod.scale.set(1.6, 0.5, 0.6);
+          for (let i = 0; i < 3; i++) S(g, 0.04, 0x7fce7f, -0.1 + i * 0.1, 0.13, 0);
+        },
+        beans(g) {
+          for (let i = 0; i < 4; i++) C(g, 0.02, 0.5, 0x4f8b3b, -0.1 + i * 0.07, 0.25, 0);
+          for (let i = 0; i < 3; i++) C(g, 0.03, 0.12, 0x5fb85f, -0.08 + i * 0.08, 0.2, 0.03, 0, 0.6);
+        },
+        tomato(g) {
+          S(g, 0.11, 0xd43b3b, 0, 0.12, 0);
+          K(g, 0.06, 0.05, 0x4f8b3b, 0, 0.23, 0);
+        },
+        pumpkin(g) {
+          const p = addPart(g, new THREE.SphereGeometry(0.22, 14, 10), 0xe07b2f, 0, 0.18, 0);
+          p.scale.set(1.2, 0.85, 1.2);
+          C(g, 0.03, 0.1, 0x4f8b3b, 0, 0.36, 0);
+        },
+        corn(g) {
+          C(g, 0.04, 1.2, 0x4f8b3b, 0, 0.6, 0);
+          const ear = addPart(g, new THREE.SphereGeometry(0.09, 10, 8), 0xf2d64b, 0.08, 0.8, 0);
+          ear.scale.set(0.8, 1.8, 0.8);
+        },
+        scarecrow(g) {
+          C(g, 0.05, 1.7, 0x6b4a2f, 0, 0.85, 0);
+          B(g, 1.2, 0.07, 0.07, 0x6b4a2f, 0, 1.3, 0);
+          B(g, 0.5, 0.6, 0.2, 0x9a5a3a, 0, 1.15, 0);
+          const head = addPart(g, new THREE.SphereGeometry(0.2, 12, 9), 0xd9c27a, 0, 1.68, 0);
+          C(g, 0.3, 0.04, 0x8a5f3d, 0, 1.82, 0);
+        },
+        wateringCan(g) {
+          C(g, 0.14, 0.24, 0x4f7c8a, 0, 0.12, 0);
+          C(g, 0.02, 0.3, 0x4f7c8a, 0.16, 0.2, 0, 0, Math.PI / 3);
+          addPart(g, new THREE.TorusGeometry(0.1, 0.012, 6, 12, Math.PI), 0x4f7c8a, -0.1, 0.25, 0);
+        },
+        wheelbarrow(g) {
+          const tray = B(g, 0.8, 0.2, 0.5, 0x8a5f3d, 0, 0.35, 0);
+          C(g, 0.16, 0.08, 0x2f2f33, 0.42, 0.16, 0, 0, 0, Math.PI / 2);
+          B(g, 0.06, 0.5, 0.06, 0x6b4a2f, -0.35, 0.25, 0.2);
+          B(g, 0.06, 0.5, 0.06, 0x6b4a2f, -0.35, 0.25, -0.2);
+        },
+        fence(g) {
+          for (let i = 0; i < 5; i++) C(g, 0.04, 1.0, 0x9a7a58, -2 + i, 0.5, 0);
+          B(g, 5, 0.06, 0.04, 0x9a7a58, 0, 0.8, 0);
+          B(g, 5, 0.06, 0.04, 0x9a7a58, 0, 0.45, 0);
+        },
+        appleTree(g) {
+          C(g, 0.14, 1.4, 0x6b4a2f, 0, 0.7, 0);
+          addPart(g, new THREE.SphereGeometry(0.9, 14, 10), 0x4f8b3b, 0, 1.9, 0);
+          [[0.4, 1.8, 0.3], [-0.45, 2.0, -0.2], [0.1, 2.4, 0.4]].forEach((p) => S(g, 0.08, 0xd43b3b, p[0], p[1], p[2]));
+        },
+        tent(g) {
+          const t = addPart(g, new THREE.ConeGeometry(1.5, 1.8, 4), 0xd9c27a, 0, 0.9, 0);
+          t.rotation.y = Math.PI / 4;
+          B(g, 1.2, 0.9, 0.9, 0x8a7f5a, 0, 0.45, 0.2);
+          [-1.2, 1.2].forEach((x) => C(g, 0.02, 0.4, 0x6b5a3a, x, 0.2, 1.2, 0.4));
+        },
+        peg(g) {
+          const p = C(g, 0.03, 0.3, 0x8a6a3a, 0, 0.15, 0, 0.3);
+          C(g, 0.02, 0.6, 0xcfc2a0, 0, 0.3, 0, 0.5);
+        },
+        pine(g) {
+          C(g, 0.12, 1.2, 0x5a4028, 0, 0.6, 0);
+          for (let i = 0; i < 3; i++) K(g, 0.7 - i * 0.16, 0.8, 0x2f5f34, 0, 1.2 + i * 0.45, 0);
+        },
+        campfire(g) {
+          for (let i = 0; i < 5; i++) {
+            const a = (i / 5) * Math.PI * 2;
+            C(g, 0.08, 0.5, 0x6b4a2f, Math.cos(a) * 0.3, 0.25, Math.sin(a) * 0.3, 0, 0.3);
+          }
+          K(g, 0.26, 0.5, 0xf29a4a, 0, 0.3, 0);
+          K(g, 0.14, 0.32, 0xf8d76a, 0, 0.34, 0);
+        },
+        logSeat(g) {
+          const l = C(g, 0.16, 1.2, 0x6b4a2f, 0, 0.16, 0);
+          l.rotation.z = Math.PI / 2;
+        },
+        compass(g) {
+          C(g, 0.1, 0.03, 0xd9c27a, 0, 0.015, 0);
+          C(g, 0.08, 0.02, 0xe8dcc0, 0, 0.03, 0);
+          B(g, 0.02, 0.01, 0.09, 0xd43b3b, 0, 0.045, 0);
+        },
+        canteen(g) {
+          const c = addPart(g, new THREE.SphereGeometry(0.15, 12, 9), 0x6b7a5a, 0, 0.16, 0);
+          c.scale.set(1, 1.2, 0.6);
+          C(g, 0.04, 0.08, 0x3a3f45, 0, 0.32, 0);
+        },
+        backpack(g) {
+          B(g, 0.34, 0.42, 0.22, 0x7a6248, 0, 0.22, 0);
+          B(g, 0.28, 0.16, 0.1, 0x6b5238, 0, 0.3, 0.14);
+          addPart(g, new THREE.TorusGeometry(0.12, 0.015, 6, 12, Math.PI), 0x5a4632, 0, 0.42, 0);
+        },
+        axe(g) {
+          C(g, 0.02, 0.7, 0x8a5f3d, 0, 0.35, 0);
+          const head = B(g, 0.18, 0.16, 0.04, 0x9aa6ad, 0.08, 0.62, 0);
+          head.rotation.z = 0.3;
+        },
+        ticketBooth(g) {
+          B(g, 2.2, 1.1, 1.4, 0xd9c27a, 0, 0.55, 0);
+          B(g, 2.4, 0.12, 1.6, 0xa8524a, 0, 1.18, 0);
+          B(g, 1.1, 0.5, 0.05, 0x2f3338, 0, 0.85, 0.72);
+          C(g, 0.02, 0.9, 0x9aa6ad, 1.0, 1.6, 0);
+          B(g, 0.6, 0.3, 0.04, 0xf2efe0, 1.0, 1.95, 0);
+        },
+        ticket(g) {
+          B(g, 0.18, 0.01, 0.09, 0xf2efe0, 0, 0.005, 0);
+          B(g, 0.18, 0.01, 0.02, 0xd45a6a, 0, 0.006, 0);
+        },
+        ferris(g) {
+          const wheel = new THREE.Group();
+          wheel.position.y = 3.2;
+          addPart(wheel, new THREE.TorusGeometry(2.4, 0.08, 6, 32), 0xd9c27a, 0, 0, 0);
+          for (let i = 0; i < 8; i++) {
+            const a = (i / 8) * Math.PI * 2;
+            const spoke = addPart(wheel, new THREE.CylinderGeometry(0.03, 0.03, 4.8, 6), 0xd9c27a, 0, 0, 0);
+            spoke.rotation.z = a;
+            const cab = addPart(wheel, new THREE.BoxGeometry(0.5, 0.5, 0.5), i % 2 ? 0xd45a6a : 0x4a86c8,
+              Math.cos(a) * 2.4, Math.sin(a) * 2.4, 0);
+            cab.rotation.z = 0;
+          }
+          g.add(wheel);
+          C(g, 0.12, 3.2, 0x8a9096, -2.6, 1.6, 0);
+          C(g, 0.12, 3.2, 0x8a9096, 2.6, 1.6, 0);
+          B(g, 5.6, 0.1, 0.3, 0x8a9096, 0, 3.2, 0);
+          g.userData.spin = wheel;
+        },
+        coaster(g) {
+          const track = new THREE.Group();
+          for (let i = 0; i < 24; i++) {
+            const a = (i / 24) * Math.PI * 2;
+            const r = 4.2;
+            const x = Math.cos(a) * r;
+            const z = Math.sin(a) * r * 0.6;
+            const h = 1.2 + Math.sin(a * 2) * 0.7;
+            B(track, 0.6, 0.08, 0.5, 0x8a5f3d, x, h, z, -a);
+            if (i % 3 === 0) C(track, 0.06, h, 0x9aa6ad, x, h / 2, z);
+          }
+          const car = new THREE.Group();
+          car.add(createBox(0.6, 0.35, 0.5, 0xd45a6a, { x: 0, y: 0.2, z: 0 }));
+          track.add(car);
+          g.add(track);
+          g.userData.car = car;
+        },
+        bleachers(g) {
+          for (let i = 0; i < 3; i++) {
+            B(g, 4.0, 0.12, 0.5, 0x9a7a58, 0, 0.3 + i * 0.35, -i * 0.5);
+            B(g, 4.0, 0.4, 0.1, 0x8a6a48, 0, 0.1 + i * 0.35, -i * 0.5 - 0.2);
+          }
+        },
+        popcorn(g) {
+          B(g, 0.6, 0.7, 0.5, 0xd45a6a, 0, 0.35, 0);
+          for (let i = 0; i < 8; i++) S(g, 0.05, 0xf2efe0, -0.2 + (i % 4) * 0.13, 0.74, -0.1 + Math.floor(i / 4) * 0.2);
+          C(g, 0.16, 0.06, 0x22262b, 0.25, 0.06, 0.2, Math.PI / 2);
+        },
+        stroller(g) {
+          B(g, 0.4, 0.3, 0.5, 0x4a86c8, 0, 0.4, 0);
+          B(g, 0.42, 0.4, 0.1, 0x3a78b8, 0, 0.6, -0.22);
+          [-0.2, 0.2].forEach((x) => C(g, 0.14, 0.05, 0x22262b, x, 0.14, 0.18, 0, 0, Math.PI / 2));
+          C(g, 0.02, 0.5, 0x9aa6ad, 0.2, 0.75, 0.2, 0.4);
+        },
+        hose(g) {
+          for (let i = 0; i < 10; i++) {
+            const a = i * 0.7;
+            C(g, 0.035, 0.3, 0x2f6f4a, Math.cos(a) * 0.6, 0.035, Math.sin(a) * 0.6, 0, a);
+          }
+          C(g, 0.06, 0.1, 0x9aa6ad, 0.7, 0.06, 0);
+        },
+        animalPen(g) {
+          for (let i = 0; i < 6; i++) C(g, 0.05, 1.1, 0x9a7a58, -2.5 + i, 0.55, -1.5);
+          for (let i = 0; i < 6; i++) C(g, 0.05, 1.1, 0x9a7a58, -2.5 + i, 0.55, 1.5);
+          B(g, 5, 0.06, 0.04, 0x9a7a58, 0, 0.9, -1.5);
+          B(g, 5, 0.06, 0.04, 0x9a7a58, 0, 0.9, 1.5);
+        },
+        trough(g) {
+          B(g, 1.4, 0.35, 0.5, 0x8a6a48, 0, 0.17, 0);
+          B(g, 1.3, 0.06, 0.4, 0x4a86c8, 0, 0.32, 0);
+        },
+        goat(g) {
+          B(g, 0.5, 0.3, 0.24, 0xe8e4d8, 0, 0.5, 0);
+          B(g, 0.2, 0.18, 0.18, 0xd8d4c8, 0.32, 0.62, 0);
+          for (let i = 0; i < 4; i++) C(g, 0.03, 0.4, 0xd8d4c8, -0.16 + (i % 2) * 0.32, 0.2, i < 2 ? 0.08 : -0.08);
+          K(g, 0.04, 0.16, 0x8a7a5a, 0.28, 0.76, 0.05);
+          K(g, 0.04, 0.16, 0x8a7a5a, 0.28, 0.76, -0.05);
+          B(g, 0.06, 0.05, 0.06, 0x6b5a3a, 0.42, 0.6, 0);
+        },
+        cottonCandy(g) {
+          C(g, 0.02, 0.4, 0xf2efe0, 0, 0.2, 0);
+          const c = addPart(g, new THREE.SphereGeometry(0.22, 12, 9), 0xf2b6c8, 0, 0.52, 0);
+          c.scale.set(1, 0.9, 1);
+        },
+        bench(g) {
+          B(g, 1.7, 0.08, 0.45, 0x9a7a58, 0, 0.45, 0);
+          B(g, 1.7, 0.4, 0.08, 0x9a7a58, 0, 0.68, -0.2);
+          C(g, 0.05, 0.45, 0x6b7075, -0.7, 0.22, 0.15);
+        }
+      };
+
+      const put = (name, key, x, z, opt, y) => {
+        const g = new THREE.Group();
+        g.position.set(FX + x, y || 0, FZ + z);
+        M[key](g, opt || {});
+        addRoomPickable(g);
+        const box = new THREE.Box3().setFromObject(g);
+        const h = Math.max(0.4, (box.max.y - Math.min(box.min.y, 0)) + 0.22);
+        addLabel(g, name, h);
+        return g;
+      };
+
+      // ---- cabin interior ----
+      put('Fireplace', 'fireplace', 0, -4.2, null, 0.02);
+      put('Firewood', 'firewood', 2.4, -4.2, null, 0.02);
+      put('Bear Skin Rug', 'bearRug', 0.2, -1.2);
+      put('Gun Rack', 'gunRack', -2.4, -4.95, null, 0.02);
+      put('Hat Rack', 'hatRack', 4.6, 4.4, null, 0.02);
+      put('Rocking Chair', 'rocker', -4.2, 2.6);
+      put('Table', 'table', 2.6, 1.6);
+      put('Candle', 'candle', 2.2, 1.4, null, 0.76);
+      put('Candle', 'candle', 3.0, 1.8, null, 0.76);
+      put('Candy Bowl', 'candyBowl', 2.6, 1.6, null, 0.78);
+      put('Bunk Bed', 'bunk', 4.6, -2.6);
+      put('Quilt', 'quilt', 4.6, -2.6, null, 1.72);
+      put('Lantern', 'lantern', 4.9, -4.2, null, 0.02);
+      put('Desk', 'desk', -4.4, -2.6);
+      put('Calculator', 'calculator', -4.6, -2.3, null, 0.8);
+      put('Slide Rule', 'slideRule', -4.1, -2.5, null, 0.8);
+      put('Bookshelf', 'bookshelf', -5.6, -4.4, null, 0.02);
+      put('Globe', 'globe', -3.4, -1.6);
+      put('Stove', 'stove', -4.8, 2.6);
+      put('Pot', 'pot', -4.8, 2.6, null, 0.82);
+      put('Jars', 'jars', -5.4, 1.6, null, 0.02);
+
+      // ---- garden ----
+      put('Fence', 'fence', -6, -9);
+      put('Fence', 'fence', 0, -9);
+      put('Fence', 'fence', -6, -14);
+      put('Fence', 'fence', 0, -14);
+      put('Carrot', 'carrot', -5.2, -10.2);
+      put('Carrot', 'carrot', -4.6, -10.2);
+      put('Potato', 'potato', -3.4, -10.2);
+      put('Pepper', 'pepper', -2.2, -10.2);
+      put('Peas', 'peas', -5.2, -11.4);
+      put('Beans', 'beans', -3.8, -11.4);
+      put('Tomato', 'tomato', -2.4, -11.4);
+      put('Pumpkin', 'pumpkin', -5.0, -12.8);
+      put('Corn', 'corn', -3.6, -12.8);
+      put('Scarecrow', 'scarecrow', -1.4, -11.6);
+      put('Watering Can', 'wateringCan', -4.4, -13.6);
+      put('Wheelbarrow', 'wheelbarrow', -1.6, -13.8);
+      put('Apple Tree', 'appleTree', 6.4, -8.4);
+
+      // ---- camp ----
+      put('Tent', 'tent', 9.5, 2.5);
+      put('Peg', 'peg', 8.2, 3.4);
+      put('Peg', 'peg', 10.8, 3.4);
+      put('Pine Tree', 'pine', 12.5, 0.5);
+      put('Pine Tree', 'pine', 8.0, -1.5);
+      put('Campfire', 'campfire', 10.5, 6.0);
+      put('Log Seat', 'logSeat', 9.2, 6.6);
+      put('Log Seat', 'logSeat', 11.8, 6.6);
+      put('Compass', 'compass', 9.8, 4.6, null, 0.5);
+      put('Canteen', 'canteen', 9.2, 2.9);
+      put('Backpack', 'backpack', 10.2, 2.9);
+      put('Axe', 'axe', 11.4, 3.4);
+
+      // ---- fair ----
+      put('Ticket Booth', 'ticketBooth', -10, 9);
+      put('Ticket', 'ticket', -9.2, 8.2, null, 0.62);
+      put('Ticket', 'ticket', -9.0, 8.4, null, 0.62);
+      const ferris = put('Ferris Wheel', 'ferris', -14, 13);
+      const coaster = put('Rollercoaster', 'coaster', -4, 13);
+      put('Bleachers', 'bleachers', -7, 8);
+      put('Popcorn', 'popcorn', -11.2, 7.4);
+      put('Stroller', 'stroller', -8.4, 6.6);
+      put('Hose', 'hose', -12.4, 5.6);
+      put('Animal Pen', 'animalPen', 3.4, 9.5);
+      put('Water Trough', 'trough', 3.4, 10.4);
+      put('Goat', 'goat', 3.4, 9.0);
+      put('Cotton Candy', 'cottonCandy', -12.6, 8.8);
+      put('Bench', 'bench', -6.4, 6.2);
+      put('Bench', 'bench', -2.0, 6.2);
+
+      // --- animations: ferris wheel + coaster car ---
+      animatedObjects.push((t) => {
+        const wheel = ferris.userData.spin;
+        if (wheel) wheel.rotation.z = t * 0.25;
+        const car = coaster.userData.car;
+        if (car) {
+          const a = t * 0.6;
+          car.position.set(Math.cos(a) * 4.2, 1.2 + Math.sin(a * 2) * 0.7 + 0.35, Math.sin(a) * 4.2 * 0.6);
+          car.rotation.y = -a;
+        }
+      });
+
+      addRoomSign('Frontier Homestead', 'सीमांत घर', new THREE.Vector3(FX, 3.6, 7.5));
+    }
+    if (WORLD === 1) buildFrontier();
 
     // --- Imported high-poly glTF assets ---
     function placeGLTF(name, opts) {
