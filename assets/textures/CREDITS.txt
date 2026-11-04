@@ -3,3 +3,5 @@ logs: bark_brown_01
 planks: wood_planks
 stone: rock_face
 grass: aerial_grass_rock
+marble: marble_01
+concrete: concrete_floor_01

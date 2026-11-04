@@ -126,44 +126,51 @@
     // --- Worlds are partitioned by ?world= so one page can serve many palaces ---
     const WORLD = (() => {
       const q = Number(new URLSearchParams(location.search).get('world'));
-      const n = (q >= 2 && q <= 5) ? q : 1;
-      return n;
+      return (q >= 2 && q <= 6) ? q : 1;
     })();
     const WORLD_CFG = {
       1: {
-        name: 'World 1 - Frontier Homestead',
+        name: 'World 1 - Science Museum',
         next: 2,
+        spawn: [100, 0, 3],
+        clear: 0x1a2430,
+        ambient: 0xdfe9ff,
+        pedestal: 0x556070
+      },
+      2: {
+        name: 'World 2 - Frontier Homestead',
+        next: 3,
         spawn: [-58, 0, 11],
         clear: 0x9fc4dd,
         ambient: 0xffe8cc,
         pedestal: 0x7a6248
       },
-      2: {
-        name: 'World 2 - Home & Food',
-        next: 3,
+      3: {
+        name: 'World 3 - Home & Food',
+        next: 4,
         spawn: [0, 0, 2.5],
         clear: 0x0b0f14,
         ambient: 0xffffff,
         pedestal: 0x6d5c4a
       },
-      3: {
-        name: 'World 3 - Animals, Nature & Body',
-        next: 4,
+      4: {
+        name: 'World 4 - Animals, Nature & Body',
+        next: 5,
         spawn: [28.9, 0, 4.3],
         clear: 0x150f1c,
         ambient: 0xd8c4ff,
         pedestal: 0x4a3f6a
       },
-      4: {
-        name: 'World 4 - Playground Park',
-        next: 5,
+      5: {
+        name: 'World 5 - Playground Park',
+        next: 6,
         spawn: [48, 0, 14],
         clear: 0x87c8ee,
         ambient: 0xfff3dd,
         pedestal: 0x6b7a5a
       },
-      5: {
-        name: 'World 5 - Sentence Workshop',
+      6: {
+        name: 'World 6 - Sentence Workshop',
         next: 1,
         spawn: [0, 0, 15.5],
         clear: 0x140f18,
@@ -586,7 +593,43 @@
       'Animal Pen': 'जानवरों का बाड़ा',
       'Water Trough': 'नांद',
       'Goat': 'बकरी',
-      'Cotton Candy': 'कॉटन कैंडी'
+      'Cotton Candy': 'कॉटन कैंडी',
+      'Magnet': 'चुंबक',
+      'Horseshoe Magnet': 'घोड़े की नाल चुंबक',
+      'Iron Filings': 'लोहे का बुरादा',
+      'Electromagnet': 'विद्युत चुंबक',
+      'Maglev Train': 'मैग्लेव ट्रेन',
+      'Tesla Coil': 'टेस्ला कॉइल',
+      'Battery': 'बैटरी',
+      'DNA Helix': 'डीएनए हेलिक्स',
+      'Cell Model': 'कोशिका मॉडल',
+      'Microscope': 'सूक्ष्मदर्शी',
+      'Skeleton': 'कंकाल',
+      'Heart Model': 'हृदय मॉडल',
+      'Periodic Table': 'आवर्त सारणी',
+      'Sarcophagus': 'ममी का संदूक',
+      'Mummy': 'ममी',
+      'Scroll': 'पांडुलिपि',
+      'Cat Statue': 'बिल्ली की मूर्ति',
+      'Canopic Jars': 'कैनोपिक जार',
+      'Ankh': 'एंख',
+      'Cloud Model': 'बादल मॉडल',
+      'Rain Cloud': 'वर्षा बादल',
+      'Tornado Model': 'बवंडर मॉडल',
+      'Weather Map': 'मौसम नक्शा',
+      'Barometer': 'बैरोमीटर',
+      'Thermometer': 'तापमापी',
+      'Wind Turbine': 'पवन चक्की',
+      'Fan': 'पंखा',
+      'Steam Spiral': 'भाप का सर्पिल',
+      'Anemometer': 'पवनवेगमापी',
+      'Air Hockey Table': 'एयर हॉकी टेबल',
+      "Newton's Cradle": 'न्यूटन का पेंडुलम',
+      'Pendulum': 'लोलक',
+      'MiG-29 Fulcrum': 'मिग-29',
+      'Su-27 Flanker': 'सुखोई-27',
+      'Tu-160 Blackjack': 'टू-160',
+      'Il-76 Candid': 'इल-76'
     };
     const labels = [];
     const labelGeometry = new THREE.PlaneGeometry(1, 1);
@@ -2244,7 +2287,7 @@
     };
 
     const pedestalMat = new THREE.MeshStandardMaterial({ color: CFG.pedestal, roughness: 0.85 });
-    const ACTIVE_WORDS = (WORLD === 4 || WORLD === 5) ? [] : (WORLD === 3 ? WORDS2 : WORDS);
+    const ACTIVE_WORDS = (WORLD === 5 || WORLD === 6) ? [] : (WORLD === 4 ? WORDS2 : WORDS);
     ACTIVE_WORDS.forEach((w, i) => {
       const innerCount = Math.ceil(ACTIVE_WORDS.length * 0.4);
       const inner = i < innerCount;
@@ -2274,8 +2317,8 @@
 
     // --- Portal: stand inside the ring to travel to the next world ---
     // World 3 keeps its portal out in the park instead of the rotunda.
-    const PORTAL_X = WORLD === 4 ? 56 : (WORLD === 5 ? 3 : (WORLD === 1 ? -58 : rotCX));
-    const PORTAL_Z = WORLD === 4 ? 10.2 : (WORLD === 5 ? 16 : (WORLD === 1 ? 9 : rotCZ));
+    const PORTAL_X = WORLD === 5 ? 56 : (WORLD === 6 ? 3 : (WORLD === 2 ? -58 : (WORLD === 1 ? 100 : rotCX)));
+    const PORTAL_Z = WORLD === 5 ? 10.2 : (WORLD === 6 ? 16 : (WORLD === 2 ? 9 : (WORLD === 1 ? 8.4 : rotCZ)));
     const portalGroup = new THREE.Group();
     portalGroup.position.set(PORTAL_X, 0.02, PORTAL_Z);
     const portalRing = new THREE.Mesh(
@@ -2833,7 +2876,7 @@
         });
       });
     }
-    if (WORLD === 4) buildPark();
+    if (WORLD === 5) buildPark();
 
     // ============================================================
     // --- World 4: Sentence Workshop ---
@@ -3098,7 +3141,7 @@
       addRoomSign('Sentence Workshop', 'वाक्य कार्यशाला', new THREE.Vector3(CX, 3.9, 24.4));
       SENTENCE_GAME = state;
     }
-    if (WORLD === 5) buildSentenceLab();
+    if (WORLD === 6) buildSentenceLab();
 
     // ============================================================
     // --- World 1: Frontier Homestead & Fair ---
@@ -3629,7 +3672,440 @@
 
       addRoomSign('Frontier Homestead', 'सीमांत घर', new THREE.Vector3(FX, 3.6, 7.5));
     }
-    if (WORLD === 1) buildFrontier();
+    if (WORLD === 2) buildFrontier();
+
+    // ============================================================
+    // --- World 1: Science Museum ---
+    // ============================================================
+    function buildMuseum() {
+      const MX = 100;
+      const MZ = 0;
+
+      const texLoader = new THREE.TextureLoader();
+      const marbleTex = texLoader.load('assets/textures/marble.jpg');
+      const concreteTex = texLoader.load('assets/textures/concrete.jpg');
+      [marbleTex, concreteTex].forEach((t) => { t.wrapS = t.wrapT = THREE.RepeatWrapping; });
+      const marbleMat = new THREE.MeshStandardMaterial({ map: marbleTex, roughness: 0.35, metalness: 0.05 });
+      marbleTex.repeat.set(6, 4);
+      const concMat = new THREE.MeshStandardMaterial({ map: concreteTex, roughness: 0.92 });
+      concreteTex.repeat.set(4, 2);
+
+      // floor + walls + ceiling
+      const floor = new THREE.Mesh(new THREE.PlaneGeometry(26, 18), marbleMat);
+      floor.rotation.x = -Math.PI / 2;
+      floor.position.set(MX, 0.004, MZ);
+      floor.receiveShadow = true;
+      floor.userData.isEnvironment = true;
+      scene.add(floor);
+
+      const wallGeoX = new THREE.BoxGeometry(26, 5.5, 0.4);
+      const wallGeoZ = new THREE.BoxGeometry(0.4, 5.5, 18);
+      [[wallGeoX, MX, 2.75, MZ - 9], [wallGeoX, MX, 2.75, MZ + 9],
+       [wallGeoZ, MX - 13, 2.75, MZ], [wallGeoZ, MX + 13, 2.75, MZ]].forEach((w) => {
+        const m = new THREE.Mesh(w[0], concMat);
+        m.position.set(w[1], w[2], w[3]);
+        m.receiveShadow = true;
+        m.castShadow = true;
+        m.userData.isEnvironment = true;
+        scene.add(m);
+      });
+
+      const ceil = new THREE.Mesh(new THREE.PlaneGeometry(26, 18),
+        new THREE.MeshStandardMaterial({ color: 0x2a3340, roughness: 0.9, side: THREE.DoubleSide }));
+      ceil.rotation.x = Math.PI / 2;
+      ceil.position.set(MX, 5.4, MZ);
+      ceil.userData.isEnvironment = true;
+      scene.add(ceil);
+
+      const hemi = new THREE.HemisphereLight(0xdfe9ff, 0x2a2f38, 1.1);
+      scene.add(hemi);
+      const key = new THREE.DirectionalLight(0xffffff, 0.9);
+      key.position.set(MX + 6, 10, MZ + 4);
+      key.castShadow = true;
+      key.shadow.mapSize.set(1024, 1024);
+      scene.add(key);
+      [[-8, -5], [8, -5], [-8, 5], [8, 5]].forEach((p) => {
+        const l = new THREE.PointLight(0xcfe4ff, 0.55, 12);
+        l.position.set(MX + p[0], 4.6, MZ + p[1]);
+        scene.add(l);
+      });
+
+      const M = {
+        tableStand(g) {
+          B(g, 1.0, 0.8, 1.0, 0x3a4048, 0, 0.4, 0);
+        },
+        magnet(g) {
+          B(g, 0.2, 0.5, 0.2, 0xd43b3b, -0.18, 0.25, 0);
+          B(g, 0.2, 0.5, 0.2, 0x4a86c8, 0.18, 0.25, 0);
+          B(g, 0.56, 0.18, 0.2, 0x8a9096, 0, 0.55, 0);
+        },
+        horseshoe(g) {
+          addPart(g, new THREE.TorusGeometry(0.28, 0.08, 8, 20, Math.PI), 0x9aa6ad, 0, 0.5, 0);
+          B(g, 0.12, 0.18, 0.16, 0xd43b3b, -0.28, 0.36, 0);
+          B(g, 0.12, 0.18, 0.16, 0x4a86c8, 0.28, 0.36, 0);
+        },
+        filings(g) {
+          const d = addPart(g, new THREE.CylinderGeometry(0.4, 0.4, 0.05, 18), 0xcfd6da, 0, 0.03, 0);
+          for (let i = 0; i < 40; i++) {
+            const a = i * 0.55, r = 0.05 + (i % 7) * 0.045;
+            B(g, 0.01, 0.012, 0.08, 0x33383d, Math.cos(a) * r, 0.06, Math.sin(a) * r, a);
+          }
+        },
+        electromagnet(g) {
+          C(g, 0.14, 0.6, 0x8a5f3d, 0, 0.3, 0);
+          for (let i = 0; i < 6; i++) addPart(g, new THREE.TorusGeometry(0.15, 0.025, 6, 16), 0xd9b45a, 0, 0.08 + i * 0.09, 0, Math.PI / 2, 0, 0);
+          C(g, 0.06, 0.2, 0x9aa6ad, 0, 0.7, 0);
+        },
+        maglev(g) {
+          B(g, 2.0, 0.12, 0.5, 0x3a4048, 0, 0.06, 0);
+          B(g, 1.4, 0.14, 0.3, 0xf2efe0, 0, 0.3, 0);
+          B(g, 0.5, 0.1, 0.26, 0x4a86c8, 0.2, 0.4, 0);
+        },
+        tesla(g) {
+          C(g, 0.28, 0.5, 0x2f3338, 0, 0.25, 0);
+          C(g, 0.1, 1.5, 0x8a5f3d, 0, 1.25, 0);
+          for (let i = 0; i < 4; i++) addPart(g, new THREE.TorusGeometry(0.2 - i * 0.03, 0.035, 6, 18), 0xd9b45a, 0, 0.75 + i * 0.2, 0, Math.PI / 2, 0, 0);
+          addPart(g, new THREE.SphereGeometry(0.16, 14, 10), 0xbfe6ff, 0, 2.05, 0);
+        },
+        battery(g) {
+          C(g, 0.1, 0.3, 0x2f6f96, 0, 0.15, 0);
+          C(g, 0.05, 0.05, 0xd9b45a, 0, 0.32, 0);
+        },
+        dna(g) {
+          const helix = new THREE.Group();
+          const N = 18;
+          for (let i = 0; i < N; i++) {
+            const a = i * 0.55;
+            const y = 0.2 + i * 0.14;
+            const x1 = Math.cos(a) * 0.28, z1 = Math.sin(a) * 0.28;
+            const x2 = Math.cos(a + Math.PI) * 0.28, z2 = Math.sin(a + Math.PI) * 0.28;
+            addPart(helix, new THREE.SphereGeometry(0.06, 8, 6), i % 2 ? 0x4a86c8 : 0x2bb3a3, x1, y, z1);
+            addPart(helix, new THREE.SphereGeometry(0.06, 8, 6), i % 2 ? 0xd45a6a : 0xf2c94c, x2, y, z2);
+            const rung = addPart(helix, new THREE.CylinderGeometry(0.012, 0.012, 0.56, 5), 0xdfe6ee, 0, y, 0);
+            rung.rotation.z = Math.PI / 2;
+            rung.rotation.y = -a;
+          }
+          g.add(helix);
+          g.userData.spin = helix;
+        },
+        cell(g) {
+          const c = addPart(g, new THREE.SphereGeometry(0.35, 16, 12), 0x9fd0c0, 0, 0.4, 0);
+          c.material.transparent = true;
+          c.material.opacity = 0.55;
+          addPart(g, new THREE.SphereGeometry(0.13, 12, 9), 0x4f7c8a, -0.08, 0.42, 0);
+          addPart(g, new THREE.SphereGeometry(0.05, 8, 6), 0xd9b45a, 0.14, 0.5, 0.1);
+        },
+        microscope(g) {
+          C(g, 0.12, 0.1, 0x3a4048, 0, 0.05, 0);
+          C(g, 0.03, 0.4, 0x9aa6ad, 0, 0.25, 0);
+          const tube = C(g, 0.06, 0.3, 0xd9b45a, 0.1, 0.5, 0, 0, 0.4);
+          C(g, 0.04, 0.06, 0x22262b, 0.16, 0.64, 0);
+          B(g, 0.2, 0.02, 0.2, 0x22262b, 0, 0.1, 0.08);
+        },
+        skeleton(g) {
+          C(g, 0.03, 0.9, 0xe8e4d8, 0, 1.15, 0);
+          for (let i = 0; i < 4; i++) addPart(g, new THREE.TorusGeometry(0.12, 0.02, 5, 10, Math.PI), 0xe8e4d8, 0, 1.35 + i * 0.12, 0, 0, 0, Math.PI);
+          addPart(g, new THREE.SphereGeometry(0.14, 12, 9), 0xe8e4d8, 0, 1.72, 0);
+          B(g, 0.4, 0.03, 0.03, 0xe8e4d8, 0, 1.55, 0);
+          C(g, 0.025, 0.5, 0xe8e4d8, -0.1, 0.6, 0);
+          C(g, 0.025, 0.5, 0xe8e4d8, 0.1, 0.6, 0);
+        },
+        heartModel(g) {
+          addPart(g, new THREE.SphereGeometry(0.22, 12, 9), 0xd43b3b, -0.1, 0.55, 0);
+          addPart(g, new THREE.SphereGeometry(0.22, 12, 9), 0xd43b3b, 0.1, 0.55, 0);
+          const c = K(g, 0.24, 0.4, 0xd43b3b, 0, 0.3, 0);
+          c.rotation.x = Math.PI;
+          C(g, 0.06, 0.25, 0xd45a6a, 0.05, 0.75, 0);
+        },
+        sarcophagus(g) {
+          B(g, 2.2, 0.6, 0.9, 0xd9c27a, 0, 0.3, 0);
+          B(g, 1.9, 0.5, 0.8, 0xc9a44a, 0, 0.75, 0);
+          B(g, 0.5, 0.35, 0.7, 0xe8d08a, 0, 0.95, 0);
+          B(g, 0.16, 0.1, 0.12, 0x2f2f33, -0.12, 1.0, 0.32);
+          B(g, 0.16, 0.1, 0.12, 0x2f2f33, 0.12, 1.0, 0.32);
+        },
+        mummy(g) {
+          const body = addPart(g, new THREE.CapsuleGeometry ? new THREE.CapsuleGeometry(0.28, 1.3, 4, 8) : new THREE.CylinderGeometry(0.28, 0.28, 1.6, 10), 0xd9c9a8, 0, 0.85, 0);
+          for (let i = 0; i < 5; i++) addPart(g, new THREE.TorusGeometry(0.29, 0.02, 5, 14), 0xb8a888, 0, 0.4 + i * 0.3, 0, Math.PI / 2, 0, 0);
+          addPart(g, new THREE.SphereGeometry(0.22, 12, 9), 0xe0d2b0, 0, 1.75, 0);
+        },
+        scroll(g) {
+          const s = C(g, 0.09, 1.1, 0xe8dcc0, 0, 0.12, 0);
+          s.rotation.z = Math.PI / 2;
+          C(g, 0.1, 0.06, 0x8a5f3d, -0.55, 0.12, 0);
+          C(g, 0.1, 0.06, 0x8a5f3d, 0.55, 0.12, 0);
+        },
+        catStatue(g) {
+          B(g, 0.5, 0.3, 0.7, 0x3a3f45, 0, 0.15, 0);
+          const body = addPart(g, new THREE.CylinderGeometry(0.18, 0.26, 0.8, 10), 0x2f3338, 0, 0.7, 0);
+          addPart(g, new THREE.SphereGeometry(0.17, 12, 9), 0x2f3338, 0, 1.2, 0);
+          K(g, 0.06, 0.16, 0x2f3338, -0.1, 1.34, 0);
+          K(g, 0.06, 0.16, 0x2f3338, 0.1, 1.34, 0);
+          S(g, 0.02, 0xf2c94c, -0.06, 1.22, 0.14);
+          S(g, 0.02, 0xf2c94c, 0.06, 1.22, 0.14);
+        },
+        canopic(g) {
+          [[-0.25, 0x8a5f3d], [0, 0x9a6f4a], [0.25, 0x7a5238]].forEach((p) => {
+            C(g, 0.1, 0.25, p[1], p[0], 0.12, 0);
+            addPart(g, new THREE.SphereGeometry(0.1, 10, 8), 0xd9c27a, p[0], 0.3, 0);
+          });
+        },
+        ankh(g) {
+          addPart(g, new THREE.TorusGeometry(0.12, 0.03, 6, 14), 0xd9b45a, 0, 0.75, 0);
+          B(g, 0.05, 0.5, 0.05, 0xd9b45a, 0, 0.45, 0);
+          B(g, 0.3, 0.05, 0.05, 0xd9b45a, 0, 0.6, 0);
+        },
+        cloud(g) {
+          [-0.2, 0, 0.2].forEach((x, i) => {
+            const c = S(g, 0.18 - i * 0.02, 0xd8e4ee, x, 0.5 + (i % 2) * 0.08, 0);
+            c.scale.set(1.3, 0.8, 1);
+          });
+        },
+        rainCloud(g) {
+          [-0.2, 0, 0.2].forEach((x, i) => S(g, 0.18 - i * 0.02, 0x9aa8b8, x, 0.5 + (i % 2) * 0.08, 0));
+          for (let i = 0; i < 5; i++) C(g, 0.008, 0.16, 0x6fa8d8, -0.24 + i * 0.1, 0.25, 0);
+        },
+        tornado(g) {
+          const t = new THREE.Group();
+          for (let i = 0; i < 8; i++) {
+            addPart(t, new THREE.TorusGeometry(0.4 - i * 0.04, 0.02, 5, 16), 0x8a97a6, 0, 0.2 + i * 0.18, 0, Math.PI / 2, 0, 0);
+          }
+          g.add(t);
+          g.userData.spin = t;
+        },
+        weatherMap(g) {
+          B(g, 1.6, 1.0, 0.05, 0x1f3a5a, 0, 0.9, 0);
+          [[-0.4, 0.9, 0x5fb85f], [0.2, 0.7, 0xf2c94c], [0.5, 0.9, 0xd45a6a]].forEach((p) => {
+            C(g, 0.12, 0.02, p[2], p[0], p[1], 0.04, Math.PI / 2);
+          });
+        },
+        barometer(g) {
+          C(g, 0.16, 0.06, 0xd9b45a, 0, 0.03, 0, 0, 0);
+          C(g, 0.02, 1.0, 0xd9b45a, 0, 0.55, 0);
+          addPart(g, new THREE.SphereGeometry(0.09, 10, 8), 0xf2efe0, 0, 1.1, 0);
+        },
+        thermometer(g) {
+          C(g, 0.03, 0.8, 0xe8e4d8, 0, 0.4, 0);
+          addPart(g, new THREE.SphereGeometry(0.06, 10, 8), 0xd43b3b, 0, 0.06, 0);
+          C(g, 0.012, 0.4, 0xd43b3b, 0, 0.3, 0.02);
+        },
+        turbine(g) {
+          C(g, 0.06, 2.4, 0xe8e4d8, 0, 1.2, 0);
+          const hub = addPart(g, new THREE.SphereGeometry(0.12, 10, 8), 0x9aa6ad, 0, 2.4, 0);
+          const blades = new THREE.Group();
+          blades.position.set(0, 2.4, 0.1);
+          for (let i = 0; i < 3; i++) {
+            const b = addPart(blades, new THREE.BoxGeometry(0.08, 0.9, 0.02), 0xf2f2f2, 0, 0.45, 0);
+            b.rotation.z = (i / 3) * Math.PI * 2;
+          }
+          g.add(blades);
+          g.userData.spin = blades;
+        },
+        fan(g) {
+          C(g, 0.05, 0.7, 0x3a4048, 0, 0.35, 0);
+          C(g, 0.3, 0.06, 0x8a9096, 0, 0.72, 0, Math.PI / 2);
+          const bl = new THREE.Group();
+          bl.position.set(0, 0.72, 0.04);
+          for (let i = 0; i < 4; i++) {
+            const b = B(bl, 0.2, 0.32, 0.02, 0x9aa6ad, 0.14, 0, 0);
+            b.rotation.z = (i / 4) * Math.PI * 2;
+          }
+          g.add(bl);
+          g.userData.spin = bl;
+        },
+        steam(g) {
+          const s = new THREE.Group();
+          for (let i = 0; i < 22; i++) {
+            const a = i * 0.6, r = 0.1 + i * 0.03;
+            const p = addPart(s, new THREE.SphereGeometry(0.06 + i * 0.004, 8, 6), 0xdfe9f2,
+              Math.cos(a) * r, 0.15 + i * 0.13, Math.sin(a) * r);
+            p.material.transparent = true;
+            p.material.opacity = 0.55;
+          }
+          g.add(s);
+          g.userData.spin = s;
+        },
+        anemometer(g) {
+          C(g, 0.03, 0.9, 0x9aa6ad, 0, 0.45, 0);
+          const arms = new THREE.Group();
+          arms.position.y = 0.9;
+          for (let i = 0; i < 3; i++) {
+            const a = (i / 3) * Math.PI * 2;
+            addPart(arms, new THREE.SphereGeometry(0.05, 8, 6), 0xd45a6a, Math.cos(a) * 0.25, 0, Math.sin(a) * 0.25);
+            const rod = addPart(arms, new THREE.CylinderGeometry(0.01, 0.01, 0.5, 5), 0x9aa6ad, Math.cos(a) * 0.12, 0, Math.sin(a) * 0.12);
+            rod.rotation.z = Math.PI / 2;
+            rod.rotation.y = -a;
+          }
+          g.add(arms);
+          g.userData.spin = arms;
+        },
+        airHockey(g) {
+          B(g, 2.2, 0.12, 1.2, 0x2f6f96, 0, 0.8, 0);
+          B(g, 2.0, 0.04, 1.0, 0x8fd0ea, 0, 0.87, 0);
+          [[-1.0, -0.5], [1.0, -0.5], [-1.0, 0.5], [1.0, 0.5]].forEach((p) => B(g, 0.08, 0.75, 0.08, 0x22262b, p[0], 0.37, p[1]));
+          const puck = C(g, 0.07, 0.03, 0x22262b, 0, 0.9, 0);
+          g.userData.puck = puck;
+          B(g, 0.05, 0.05, 0.3, 0xd9b45a, -0.7, 0.9, 0);
+        },
+        cradle(g) {
+          B(g, 1.6, 0.1, 0.5, 0x3a4048, 0, 0.8, 0);
+          [[-0.7, -0.2], [0.7, -0.2], [-0.7, 0.2], [0.7, 0.2]].forEach((p) => C(g, 0.02, 0.8, 0x9aa6ad, p[0], 0.4, p[1]));
+          const balls = [];
+          for (let i = 0; i < 5; i++) {
+            const pivot = new THREE.Group();
+            pivot.position.set(-0.4 + i * 0.2, 0.8, 0);
+            const wire = C(pivot, 0.004, 0.5, 0xcfd6da, 0, -0.25, 0);
+            const ball = addPart(pivot, new THREE.SphereGeometry(0.08, 12, 9), 0xd9b45a, 0, -0.55, 0);
+            g.add(pivot);
+            balls.push(pivot);
+          }
+          g.userData.balls = balls;
+        },
+        pendulum(g) {
+          B(g, 1.2, 0.1, 0.4, 0x3a4048, 0, 1.6, 0);
+          const p = new THREE.Group();
+          p.position.set(0, 1.55, 0);
+          C(p, 0.006, 0.9, 0xcfd6da, 0, -0.45, 0);
+          addPart(p, new THREE.SphereGeometry(0.12, 12, 9), 0x9aa6ad, 0, -0.95, 0);
+          g.add(p);
+          g.userData.swing = p;
+        },
+        periodic(g) {
+          const c = document.createElement('canvas');
+          c.width = 512; c.height = 320;
+          const x = c.getContext('2d');
+          x.fillStyle = '#101a26'; x.fillRect(0, 0, 512, 320);
+          const cols = [0xd45a6a, 0xf2c94c, 0x5fb85f, 0x4a86c8, 0x9a7fd0];
+          for (let i = 0; i < 10; i++) {
+            for (let j = 0; j < 6; j++) {
+              if (j === 0 && i > 1) continue;
+              x.fillStyle = cols[(i + j) % cols.length];
+              x.fillRect(10 + i * 48, 12 + j * 48, 42, 42);
+              x.fillStyle = '#0b1016';
+              x.font = 'bold 14px Arial';
+              x.textAlign = 'center';
+              x.fillText(String(i * 6 + j + 1), 31 + i * 48, 38 + j * 48);
+            }
+          }
+          const t = new THREE.CanvasTexture(c);
+          const mesh = new THREE.Mesh(new THREE.PlaneGeometry(3.0, 1.9),
+            new THREE.MeshStandardMaterial({ map: t, roughness: 0.7 }));
+          mesh.position.set(0, 0, 0);
+          g.add(mesh);
+        },
+        plane(g, o) {
+          const scale = o.scale || 1;
+          const body = C(g, 0.28, 2.6, o.color || 0x8a97a6, 0, 0, 0, Math.PI / 2);
+          body.scale.setScalar(scale);
+          const wing = B(g, 2.6, 0.08, 0.6, o.color || 0x8a97a6, 0, 0, 0.1);
+          wing.scale.setScalar(scale);
+          const tail = B(g, 1.0, 0.06, 0.4, o.color || 0x8a97a6, -1.1, 0.06, 0);
+          tail.scale.setScalar(scale);
+          const fin = B(g, 0.06, 0.5, 0.4, o.color || 0x8a97a6, -1.25, 0.25, 0);
+          fin.scale.setScalar(scale);
+          C(g, 0.001, 0.9, 0xcfd6da, 0.6, 0.7, 0);
+          C(g, 0.001, 0.9, 0xcfd6da, -0.6, 0.7, 0);
+        }
+      };
+
+      const put = (name, key, x, z, opt, y) => {
+        const g = new THREE.Group();
+        g.position.set(MX + x, y || 0, MZ + z);
+        M[key](g, opt || {});
+        addRoomPickable(g);
+        const box = new THREE.Box3().setFromObject(g);
+        const h = Math.max(0.4, (box.max.y - Math.min(box.min.y, 0)) + 0.22);
+        addLabel(g, name, h);
+        return g;
+      };
+
+      // magnetism
+      put('Magnet', 'magnet', -9, -5);
+      put('Horseshoe Magnet', 'horseshoe', -7.4, -5);
+      put('Iron Filings', 'filings', -5.8, -5, null, 0.9);
+      put('Electromagnet', 'electromagnet', -9, -2.4);
+      put('Maglev Train', 'maglev', -6.6, -2.4);
+      const tesla = put('Tesla Coil', 'tesla', -4.2, -5);
+      put('Battery', 'battery', -9.6, -3.8);
+
+      // biology
+      const dna = put('DNA Helix', 'dna', 5.2, -5);
+      put('Cell Model', 'cell', 7.4, -5);
+      put('Microscope', 'microscope', 9.2, -5);
+      put('Skeleton', 'skeleton', 9.6, -2.4);
+      put('Heart Model', 'heartModel', 7.0, -2.4);
+      put('Periodic Table', 'periodic', 0, -8.6, null, 2.6);
+
+      // egypt
+      put('Sarcophagus', 'sarcophagus', -9.4, 6.4);
+      put('Mummy', 'mummy', -6.8, 6.4);
+      put('Scroll', 'scroll', -9.4, 3.6, null, 0.9);
+      put('Scroll', 'scroll', -9.4, 4.3, null, 0.9);
+      put('Cat Statue', 'catStatue', -4.0, 6.4);
+      put('Cat Statue', 'catStatue', -2.6, 6.4);
+      put('Canopic Jars', 'canopic', -7.6, 8.0);
+      put('Ankh', 'ankh', -5.6, 3.6);
+
+      // weather + wind
+      put('Cloud Model', 'cloud', 5.0, 6.6);
+      put('Rain Cloud', 'rainCloud', 6.8, 6.6);
+      const tornado = put('Tornado Model', 'tornado', 8.6, 6.6);
+      put('Weather Map', 'weatherMap', 10.4, 5.0);
+      put('Barometer', 'barometer', 10.6, 2.8);
+      put('Thermometer', 'thermometer', 9.4, 2.8);
+      const turbine = put('Wind Turbine', 'turbine', 3.0, 3.2);
+      const fan = put('Fan', 'fan', 5.2, 3.2);
+      const steam = put('Steam Spiral', 'steam', 7.2, 3.2);
+      const anemometer = put('Anemometer', 'anemometer', 9.2, 3.4);
+
+      // physics
+      const hockey = put('Air Hockey Table', 'airHockey', 0.4, 1.6);
+      const cradle = put('Newton\'s Cradle', 'cradle', -2.6, 1.6);
+      const pend = put('Pendulum', 'pendulum', 3.6, 0.2);
+
+      // aviation, hung from the ceiling
+      const planes = [
+        ['MiG-29 Fulcrum', 0x9aa6ad, -6, -0.6, 0.9],
+        ['Su-27 Flanker', 0x6f8fa8, 0, -1.0, 1.0],
+        ['Tu-160 Blackjack', 0xe8e4d8, 6, -0.6, 1.1],
+        ['Il-76 Candid', 0x7a8f6a, -3, 0.9, 1.2]
+      ];
+      planes.forEach((p) => {
+        const g = new THREE.Group();
+        g.position.set(MX + p[2], 4.0, MZ + p[3]);
+        M.plane(g, { color: p[1], scale: p[4] });
+        addRoomPickable(g);
+        addLabel(g, p[0], 0.9);
+      });
+
+      // animations
+      animatedObjects.push((t) => {
+        if (dna.userData.spin) dna.userData.spin.rotation.y = t * 0.6;
+        if (tornado.userData.spin) tornado.userData.spin.rotation.y = t * 1.6;
+        if (turbine.userData.spin) turbine.userData.spin.rotation.z = t * 1.2;
+        if (fan.userData.spin) fan.userData.spin.rotation.z = t * 4;
+        if (steam.userData.spin) steam.userData.spin.rotation.y = t * 0.9;
+        if (anemometer.userData.spin) anemometer.userData.spin.rotation.y = t * 2.4;
+        if (pend.userData.swing) pend.userData.swing.rotation.z = Math.sin(t * 1.6) * 0.5;
+        if (cradle.userData.balls) {
+          const balls = cradle.userData.balls;
+          const a = Math.sin(t * 2.2) * 0.5;
+          balls[0].rotation.z = a;
+          balls[4].rotation.z = -a;
+        }
+        if (hockey.userData.puck) {
+          hockey.userData.puck.position.x = Math.sin(t * 1.2) * 0.85;
+          hockey.userData.puck.position.z = Math.cos(t * 0.9) * 0.4;
+        }
+        if (tesla.userData && tesla.children.length) {
+          const orb = tesla.children[tesla.children.length - 1];
+          if (orb && orb.material) orb.material.emissiveIntensity = 0.4 + Math.abs(Math.sin(t * 9)) * 1.2;
+        }
+      });
+
+      addRoomSign('Science Museum', 'विज्ञान संग्रहालय', new THREE.Vector3(MX, 3.4, MZ + 8.4));
+    }
+    if (WORLD === 1) buildMuseum();
 
     // --- Imported high-poly glTF assets ---
     function placeGLTF(name, opts) {
